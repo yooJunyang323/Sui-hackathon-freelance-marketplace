@@ -458,3 +458,27 @@ public fun add_additional_admin(
 
     transfer::transfer(admin_cap, new_admin_address);
 }
+
+public fun add_freelancer(
+    _: &AdminCap,
+    new_freelancer_address: address,
+    ctx: &mut TxContext,
+) {
+    let freelancer_cap = FreelancerCap {
+        id: object::new(ctx),
+    };
+
+    transfer::transfer(freelancer_cap, new_freelancer_address);
+}
+
+public fun add_buyer(
+    _: &AdminCap,
+    new_buyer_address: address,
+    ctx: &mut TxContext,
+) {
+    let buyer_cap = BuyerCap {
+        id: object::new(ctx),
+    };
+
+    transfer::transfer(buyer_cap, new_buyer_address);
+}
