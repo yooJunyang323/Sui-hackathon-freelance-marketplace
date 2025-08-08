@@ -49,6 +49,11 @@
 }
 
 .google-btn {
-  margin-left: 10px;
+  margin-top: 10px;
+  width: 284px;
+  height: 40.8px;
 }
 
+.btn:hover{
+  border-color: #646cff;
+}
