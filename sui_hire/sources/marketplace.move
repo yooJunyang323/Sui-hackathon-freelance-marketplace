@@ -11,21 +11,22 @@ use sui::clock::{Self, Clock};
 const ENotOwner: u64 = 0;
 const ENotFreelancer: u64 = 1;
 const ENotBuyer: u64 = 2;
+const ENotIntendedAddress: u64 = 3;
 
-const EOrderNotPendingReview: u64 = 3;
-const EOrderNotInProgress: u64 = 4;
-const EOrderNotDelivered: u64 = 5;
+const EOrderNotPendingReview: u64 = 4;
+const EOrderNotInProgress: u64 = 5;
+const EOrderNotDelivered: u64 = 6;
 // const EOrderNotRejected: u64 = 5;
-const EOrderNotUnderAdminReview: u64 = 6;
+const EOrderNotUnderAdminReview: u64 = 7;
 // const EOrderAlreadyFinalized: u64 = 100;
 
-const EServiceNotFound: u64 = 7;
-const EOrderNotFound: u64 = 8;
-const EAmountIncorrect: u64 = 9;
-const EGracePeriodNotEnded: u64 = 10;
+const EServiceNotFound: u64 = 8;
+const EOrderNotFound: u64 = 9;
+const EAmountIncorrect: u64 = 10;
+const EGracePeriodNotEnded: u64 = 11;
 
-const EURLTooLong: u64 = 11;
-const EHashTooLong: u64 = 12;
+const EURLTooLong: u64 = 12;
+const EHashTooLong: u64 = 13;
 
 // Order Status Constants
 const STATUS_PENDING_REVIEW: u8 = 0;
@@ -72,8 +73,6 @@ public struct Order<phantom COIN> has key, store {
     escrow: Coin<COIN>,
     // Buyer submit requirement in form of URL
     requirements_url: vector<u8>,
-    // Freelancer submit Github repo
-    github_repo: vector<u8>,
     // Freelancer submit Github commit hash (Ensure nothing is being modified after submission - Like fingerprint)
     // So Buyer can use the commit hash to navigate to the exact version of the code that was submitted
     github_commit_hash: vector<u8>,
@@ -81,6 +80,18 @@ public struct Order<phantom COIN> has key, store {
     delivery_deadline: u64,
     // Status of order [0, 1, 2, 3, 4]
     status: u8,
+}
+// A private object that holds the URL. It is "wrapped" inside the `DeliverableWrapper`.
+// It has `store` but NOT `key`, so it can't be a standalone public object
+public struct Deliverable has key, store {
+    id: UID,
+    github_repo_url: vector<u8>,
+}
+
+public struct DeliverableWrapper has key {
+    id: UID,
+    deliverable: Deliverable,
+    intended_address: address,
 }
 
 fun init(ctx: &mut TxContext) {
@@ -205,7 +216,7 @@ public fun reject_order<COIN>(
 public fun deliver_work<COIN>(
     marketplace: &mut Marketplace<COIN>,
     order_id: ID,
-    github_repo: vector<u8>,
+    github_repo_url: vector<u8>,
     github_commit_hash: vector<u8>,
     ctx: &mut TxContext,
 ) {
@@ -219,13 +230,25 @@ public fun deliver_work<COIN>(
     let max_url_length = 256; // Validation for Github Repo URL length
     let max_hash_length = 40; // SHA-1 hash is 40 characters long
 
-    assert!(vector::length(&github_repo) <= max_url_length, EURLTooLong);
+    assert!(vector::length(&github_repo_url) <= max_url_length, EURLTooLong);
     assert!(vector::length(&github_commit_hash) <= max_hash_length, EHashTooLong);
 
-    order.github_repo = github_repo;
     order.github_commit_hash = github_commit_hash;
-
     order.status = STATUS_DELIVERED;
+
+    // Create wrapped Deliverable object and transfer to freelancer
+    let deliverable = Deliverable {
+        id: object::new(ctx),
+        github_repo_url,
+    };
+
+    let deliverable_wrapper = DeliverableWrapper {
+        id: object::new(ctx),
+        deliverable,
+        intended_address: order.buyer,
+    };
+
+    transfer::transfer(deliverable_wrapper, order.buyer);
 }
 
 // ============================= BUYER FUNCTION =============================
@@ -259,7 +282,6 @@ public fun purchase_service<COIN>(
         freelancer: service.owner,
         escrow: payment,
         requirements_url,
-        github_repo: b"",
         github_commit_hash: b"",
         delivery_deadline,
         status: STATUS_PENDING_REVIEW,
@@ -278,6 +300,7 @@ public fun purchase_service<COIN>(
 public fun accept_delivery<COIN>(
     marketplace: &mut Marketplace<COIN>,
     order_id: ID,
+    deliverable_wrapper: DeliverableWrapper, //Github repo wrapped inside here
     ctx: &mut TxContext,
 ) {
     assert!(marketplace.orders.contains(order_id), EOrderNotFound);
@@ -294,6 +317,20 @@ public fun accept_delivery<COIN>(
     assert!(ctx.sender() == buyer, ENotBuyer);
     assert!(status == STATUS_DELIVERED, EOrderNotDelivered);
 
+    // Make sure sender is intended receipent of the deliverable
+    assert!(deliverable_wrapper.intended_address == ctx.sender(), ENotIntendedAddress);
+
+    let DeliverableWrapper {
+        id,
+        deliverable,
+        ..
+    } = deliverable_wrapper;
+
+    // Transfer deliverable to buyer
+    transfer::transfer(deliverable, buyer);
+    // Delete deliverable wrapper
+    object::delete(id);
+
     // Transfer back the locked Service object back to freelancer
     let service: Service = dof::remove(&mut order_uid, b"service");
     transfer::transfer(service, freelancer);
@@ -307,6 +344,7 @@ public fun accept_delivery<COIN>(
 public fun reject_delivery<COIN>(
     marketplace: &mut Marketplace<COIN>,
     order_id: ID,
+    deliverable_wrapper: DeliverableWrapper,
     ctx: &mut TxContext,
 ) {
     assert!(marketplace.orders.contains(order_id), EOrderNotFound);
@@ -322,6 +360,15 @@ public fun reject_delivery<COIN>(
 
     assert!(ctx.sender() == buyer, ENotBuyer);
     assert!(status == STATUS_DELIVERED, EOrderNotDelivered);
+
+    let DeliverableWrapper {
+        id,
+        deliverable,
+        ..
+    } = deliverable_wrapper;
+
+    transfer::transfer(deliverable, freelancer);
+    object::delete(id);
 
     let service: Service = dof::remove(&mut order_uid, b"service");
     transfer::transfer(service, freelancer);
