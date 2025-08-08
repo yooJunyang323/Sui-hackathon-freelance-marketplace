@@ -42,6 +42,14 @@ public struct AdminCap has key, store {
     id: UID,
 }
 
+public struct FreelancerCap has key, store {
+    id: UID,
+}
+
+public struct BuyerCap has key, store {
+    id: UID,
+}
+
 public struct Marketplace<phantom COIN> has key {
     id: UID,
     // Table to hold 'Service' listings by object ID
@@ -127,6 +135,7 @@ public fun create_marketplace<COIN>(
 // ============================= FREELANCER FUNCTION =============================
 // Freelancer listing a service on the marketplace
 public fun list_service<COIN>(
+    _: &FreelancerCap,
     marketplace: &mut Marketplace<COIN>,
     title: vector<u8>,
     description: vector<u8>,
@@ -152,6 +161,7 @@ public fun list_service<COIN>(
 // Freelancer withdraws a service from the marketplace
 #[allow(lint(self_transfer))]
 public fun withdraw_service<COIN>(
+    _: &FreelancerCap,
     marketplace: &mut Marketplace<COIN>,
     service_id: ID,
     ctx: &mut TxContext,
@@ -170,6 +180,7 @@ public fun withdraw_service<COIN>(
 
 // Freelancer accepts buyer requirment/proposal to work on
 public fun accept_order<COIN>(
+    _: &FreelancerCap,
     marketplace: &mut Marketplace<COIN>,
     order_id: ID,
     ctx: &mut TxContext,
@@ -185,6 +196,7 @@ public fun accept_order<COIN>(
 
 // Freelancer reject buyer requirment/proposal to work on
 public fun reject_order<COIN>(
+    _: &FreelancerCap,
     marketplace: &mut Marketplace<COIN>,
     order_id: ID,
     ctx: &mut TxContext,
@@ -214,6 +226,7 @@ public fun reject_order<COIN>(
 
 // Freelancer delivers the work by providing a demo link
 public fun deliver_work<COIN>(
+    _: &FreelancerCap,
     marketplace: &mut Marketplace<COIN>,
     order_id: ID,
     github_repo_url: vector<u8>,
@@ -254,6 +267,7 @@ public fun deliver_work<COIN>(
 // ============================= BUYER FUNCTION =============================
 // Buyer purchase service
 public fun purchase_service<COIN>(
+    _: &BuyerCap,
     marketplace: &mut Marketplace<COIN>,
     service_id: ID,
     payment: Coin<COIN>,
@@ -298,6 +312,7 @@ public fun purchase_service<COIN>(
 
 // Buyer accept the delivered work, release funds to freelancer
 public fun accept_delivery<COIN>(
+    _: &BuyerCap,
     marketplace: &mut Marketplace<COIN>,
     order_id: ID,
     deliverable_wrapper: DeliverableWrapper, //Github repo wrapped inside here
@@ -342,6 +357,7 @@ public fun accept_delivery<COIN>(
 
 // Buyer reject the delivered work and get back funds
 public fun reject_delivery<COIN>(
+    _: &BuyerCap,
     marketplace: &mut Marketplace<COIN>,
     order_id: ID,
     deliverable_wrapper: DeliverableWrapper,
@@ -379,6 +395,7 @@ public fun reject_delivery<COIN>(
     
 // Extend the delivery deadline for the order
 public fun extend_delivery_deadline<COIN>(
+    _: &BuyerCap,
     marketplace: &mut Marketplace<COIN>,
     order_id: ID,
     additional_time_in_ms: u64,
