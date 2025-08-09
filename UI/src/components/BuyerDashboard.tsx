@@ -8,6 +8,9 @@ import { Table } from './Table';
 import { callSmartContract } from '../utils/smartContract';
 import { Service, Order } from '../types';
 
+// CHANGES START HERE
+const MARKETPLACE_OBJECT_ID = import.meta.env.VITE_SUI_PACKAGE_ID; // If using Vite
+
 export const BuyerDashboard: React.FC = () => {
   const [selectedService, setSelectedService] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -74,6 +77,78 @@ export const BuyerDashboard: React.FC = () => {
       deadline: '2024-01-20'
     }
   ];
+
+//   const fetchOnChainData = async () => {
+//     console.log("Simulating on-chain data fetch...");
+//     await new Promise(resolve => setTimeout(resolve, 1500));
+
+//     // 1. Fetch marketplace object
+//     const marketplace = await suiClient.getObject({ id: MARKETPLACE_OBJECT_ID });
+
+//     // 2. Read its 'services' table:
+//     const servicesTableId = marketplace.data.content.fields.services.fields.id;
+
+//     // 3. Get the entries from the table:
+//     const services = await suiClient.getDynamicFields({ id: servicesTableId }); 
+//   }
+
+//   interface Service {
+//   id: string;
+//   title: string;
+//   price: number;
+//   description: string;
+//   expected_time: number;
+//   owner: string;
+// }
+
+// interface Order {
+//   id: string;
+//   service_id: string;
+//   buyer_address: string;
+//   freelancer_address: string;
+//   payment_amount: number;
+//   requirements_url: string;
+//   status: string;
+//   github_url?: string;
+//   commit_hash?: string;
+//   created_at: string;
+//   deadline: string;
+// }
+
+// export const BuyerDashboard: React.FC = () => {
+//   const [selectedService, setSelectedService] = useState('');
+//   const [paymentAmount, setPaymentAmount] = useState('');
+//   const [requirementsUrl, setRequirementsUrl] = useState('');
+  
+//   // States for fetching data
+//   const [loading, setLoading] = useState(true);
+  
+//   // States to hold the fetched data
+//   const [availableServices, setAvailableServices] = useState<Service[]>([]);
+//   const [deliveredOrders, setDeliveredOrders] = useState<Order[]>([]);
+//   const [inProgressOrders, setInProgressOrders] = useState<Order[]>([]);
+  
+//   // This function fetches all data for the dashboard
+//   const fetchData = async () => {
+//     try {
+//       setLoading(true);
+//       const data = await fetchOnChainData();
+//       setAvailableServices(data.services);
+//       setDeliveredOrders(data.deliveredOrders);
+//       setInProgressOrders(data.inProgressOrders);
+//     } catch (error) {
+//       console.error("Failed to fetch data:", error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+  
+//   // Use the useEffect hook to call the fetch function when the component mounts
+//   useEffect(() => {
+//     fetchData();
+//   }, []);
+
+  // CHANGES END
 
   const handlePurchaseService = async () => {
     if (!selectedService || !paymentAmount || !requirementsUrl) return;
