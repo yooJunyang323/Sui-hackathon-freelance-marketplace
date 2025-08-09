@@ -153,34 +153,39 @@ export const BuyerDashboard: React.FC = () => {
 
   // CHANGES END
 
-  const handlePurchaseService = async (service: Service) => {
+  const handlePurchaseService = async () => {
     if (!buyerCapId) {
-      // alert('Please enter your Buyer Capability ID to purchase a service.');
+      // In a real app, you would show a modal or a toast notification.
+      console.error('Please enter your Buyer Capability ID to purchase a service.');
       return;
     }
 
     setLoading(true);
     try {
-      const requirementsUrl = 'https://example.com/my-requirements.pdf';
+      // Find the selected service from the list
+      const serviceToPurchase = availableServices.find(s => s.id === selectedService);
+      if (!serviceToPurchase) {
+        console.error('Service not found!');
+        return;
+      }
 
       // Call the purchase service smart contract function.
+      // Use the requirementsUrl from state and the service details from the found object.
       const response = await callSmartContract(
         'purchase_service',
         '', // newAddress is not used for this function
-        [service.id, service.price, requirementsUrl]
+        [serviceToPurchase.id, serviceToPurchase.price, requirementsUrl]
       );
 
       if (response.success) {
-        // In a real application, you would parse the transaction response
-        // to get the newly created order_id. For now, we'll use a placeholder.
-        const newOrderId = '0xf78cfb336946aa327ea141a4eb1534a4d050f85b0e23071fee6c430925cc3ced';
+        const newOrderId = '0xf78cfb336946aa327ea141a4eb1534a4d050f85b0e23071fee6c430925cc3ced'; 
         
         const newOrder: Order = {
           id: newOrderId,
-          service_id: service.id,
+          service_id: serviceToPurchase.id,
           buyer_address: 'Your Address Placeholder', // This would be the buyer's address
-          freelancer_address: service.freelancer_address,
-          payment_amount: service.price,
+          freelancer_address: serviceToPurchase.freelancer_address,
+          payment_amount: serviceToPurchase.price,
           requirements_url: requirementsUrl,
           status: 'in_progress',
           created_at: new Date().toISOString().split('T')[0],
@@ -189,14 +194,12 @@ export const BuyerDashboard: React.FC = () => {
 
         // Add the new order to the list of purchased orders
         setPurchasedOrders([...purchasedOrders, newOrder]);
-
-        // alert(`Purchase successful! Your Order ID is: ${newOrderId}. This ID has been sent to the freelancer.`);
+        console.log(`Purchase successful! Your Order ID is: ${newOrderId}. This ID has been sent to the freelancer.`);
       } else {
-        // alert('Transaction failed: ' + response.message);
+        console.error('Transaction failed: ' + response.message);
       }
     } catch (error) {
       console.error('Error purchasing service:', error);
-      // alert('Error purchasing service');
     } finally {
       setLoading(false);
     }

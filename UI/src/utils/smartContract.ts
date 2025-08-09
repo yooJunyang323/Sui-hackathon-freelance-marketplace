@@ -427,7 +427,7 @@ const callWithdrawService = async (
   }
 }
 
-export const callAcceptOrder = async (
+const callAcceptOrder = async (
   client: SuiClient,
   keypair: Ed25519Keypair,
   freelancerCapId: string,
@@ -527,7 +527,7 @@ const callRejectOrder = async (
   }
 };
 
-const callSmartContract = async (
+export const callSmartContract = async (
   functionName: string,
   newAddress: string,
   params: any[] = []
