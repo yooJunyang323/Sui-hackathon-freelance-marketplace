@@ -37,6 +37,10 @@ const STATUS_REJECTED: u8 = 3;
 const STATUS_UNDER_ADMIN_REVIEW: u8 = 4;
 // const STATUS_ADMIN_APPROVED_REFUND: u8 = 5;
 // const STATUS_REFUNDED: u8 = 6;
+const FEE_PERCENTAGE: u64 = 15; // 15% fee on the total order amount
+// Vault address to hold the marketplace fee
+const VAULT_ADDRESS: address = @0xe7abc5f54e87c0c2eae79e3e34006ea9fe2b68d4e2333ce70b31ce085d59caf1; 
+
 
 public struct AdminCap has key, store {
     id: UID,
@@ -108,6 +112,22 @@ fun init(ctx: &mut TxContext) {
     };
 
     transfer::transfer(admin_cap, ctx.sender());
+}
+
+// ============================= HELPER FUNCTION =============================
+
+fun fee_collect<COIN>(
+    mut escrow: Coin<COIN>,
+    ctx: &mut TxContext,
+): Coin<COIN> {
+    // Collect 15% fee
+    let escrow_value = coin::value(&escrow);
+    let fee_amount = (escrow_value * FEE_PERCENTAGE) / 100;
+    let fee_coin = coin::split(&mut escrow, fee_amount, ctx);
+
+    transfer::public_transfer(fee_coin, VAULT_ADDRESS);
+
+    escrow
 }
 
 // ============================= ADMIN FUNCTION =============================
@@ -349,9 +369,12 @@ public fun accept_delivery<COIN>(
     // Transfer back the locked Service object back to freelancer
     let service: Service = dof::remove(&mut order_uid, b"service");
     transfer::transfer(service, freelancer);
-    
+
+    // Helper function to collect fee and return the remaining escrow
+    let freelancer_coin = fee_collect(escrow, ctx);
+
     // Transfer funds to freelancer
-    transfer::public_transfer(escrow, freelancer);
+    transfer::public_transfer(freelancer_coin, freelancer);
     object::delete(order_uid);
 }
 
@@ -419,6 +442,7 @@ public fun finalize_order_after_timeout<COIN>(
     marketplace: &mut Marketplace<COIN>,
     order_id: ID,
     clock: &Clock,
+    ctx: &mut TxContext,
 ) {
     assert!(marketplace.orders.contains(order_id), EOrderNotFound);
 
@@ -437,9 +461,11 @@ public fun finalize_order_after_timeout<COIN>(
     // Transfer back the locked Service object back to freelancer
     let service: Service = dof::remove(&mut order_uid, b"service");
     transfer::transfer(service, freelancer);
+
+    let freelancer_coin = fee_collect(escrow, ctx);
     
     // Transfer funds to freelancer
-    transfer::public_transfer(escrow, freelancer);
+    transfer::public_transfer(freelancer_coin, freelancer);
     object::delete(order_uid);
 }
 
