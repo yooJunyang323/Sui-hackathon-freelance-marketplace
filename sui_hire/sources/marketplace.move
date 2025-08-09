@@ -460,7 +460,6 @@ public fun add_additional_admin(
 }
 
 public fun add_freelancer(
-    _: &AdminCap,
     new_freelancer_address: address,
     ctx: &mut TxContext,
 ) {
@@ -472,7 +471,6 @@ public fun add_freelancer(
 }
 
 public fun add_buyer(
-    _: &AdminCap,
     new_buyer_address: address,
     ctx: &mut TxContext,
 ) {
