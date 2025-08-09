@@ -10,6 +10,7 @@ import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
 import { requestSuiFromFaucetV0, getFaucetHost } from '@mysten/sui/faucet';
 import { Transaction} from '@mysten/sui/transactions';
 
+
 const client = new SuiClient({ url: 'https://fullnode.devnet.sui.io'});
 const PACKAGE_ID = '0x3bcb920bef49d3921c412d90053403d6335e54466322b6a0c6dfea8dd2c175e1';
 const MODULE_NAME = "marketplace";
@@ -154,7 +155,9 @@ function App() {
   };
   
   // FIX: Refactored the function to correct the syntax error and use component state
-  const handleRoleSelection = async (selectedRole: string) => {
+  const handleRoleSelection = async (selectedRole: string, setupData: any) => {
+
+
     setRole(selectedRole);
     console.log("Role manually selected:", selectedRole);
 
@@ -174,29 +177,57 @@ function App() {
         ],
     });
     console.log("Transaction block created for adding a freelancer.");
-} else if (selectedRole === 'buyer') {
-    txb.moveCall({
-        target: `${PACKAGE_ID}::${MODULE_NAME}::add_buyer`,
-        arguments: [
-            txb.pure.address(addressToUse!),
-        ],
-    });
-    console.log("Transaction block created for adding a buyer.");
-} else {
-    console.error("Invalid role selected.");
-    return;
-}
+    } else if (selectedRole === 'buyer') {
+        txb.moveCall({
+            target: `${PACKAGE_ID}::${MODULE_NAME}::add_buyer`,
+            arguments: [
+                txb.pure.address(addressToUse!),
+            ],
+        });
+        console.log("Transaction block created for adding a buyer.");
+    } else {
+        console.error("Invalid role selected.");
+        return;
+    }
 
-try {
-    const result = await wallet.signAndExecuteTransaction({
+    try {
+        const result = await wallet.signAndExecuteTransaction({
+            transaction: txb,
+        });
+
+        console.log("Transaction executed successfully:", result);
+    } catch (error) {
+        console.error("Transaction failed:", error);
+    }
+    };
+
+    try {
+    if (setupData?.ephemeralKeyPair) {
+      // zkLogin flow
+      console.log("Using zkLogin ephemeral key for signing...");
+      const keypair = Ed25519Keypair.fromSecretKey(
+        Uint8Array.from(setupData.ephemeralKeyPair.secretKey)
+      );
+
+      const { bytes, signature } = await txb.sign({ signer: keypair });
+      const result = await suiClient.executeTransactionBlock({
+        transactionBlock: bytes,
+        signature,
+        options: { showEffects: true },
+      });
+      console.log("Transaction executed successfully (zkLogin):", result);
+    } else {
+      // Extension wallet flow
+      console.log("Using extension wallet for signing...");
+      const result = await wallet.signAndExecuteTransaction({
         transaction: txb,
-    });
-
-    console.log("Transaction executed successfully:", result);
-} catch (error) {
+      });
+      console.log("Transaction executed successfully (extension):", result);
+    }
+  } catch (error) {
     console.error("Transaction failed:", error);
-}
-  };
+  }
+};
 
   if ((wallet.connected && roleChecked && isLoading) || (googleAddress && !role && isLoading)) {
     return (

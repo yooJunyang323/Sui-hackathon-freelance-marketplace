@@ -17,7 +17,7 @@ function numberToUint8Array(num: BigInt): Uint8Array {
 }
 
 
-function toBase64Url(base64: string): string {
+export function toBase64Url(base64: string): string {
     return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 

@@ -16,14 +16,24 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+
+    "baseUrl": ".",
+    "paths": {
+      "@zklogin/*": ["../zklogin/src/*"]
+    },
+    
     /* Linting */
     "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": false,
     "noUncheckedSideEffectImports": false
+    
   },
   "include": [
-    "src"
+    "src",
+    "../zklogin/src"
   ]
+
+  
 }

@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@react-oauth/google": "^0.12.2",
+    "@suiet/wallet-kit": "^0.5.1"
+  }
+}
