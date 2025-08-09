@@ -208,6 +208,70 @@ const callPurchaseService = async (
   }
 }
 
+// ============================= FREELANCER FUNCTION =============================
+const callListService = async (
+  client: SuiClient,
+  keypair: Ed25519Keypair,
+  freelancerCapId: string,
+  title: string,
+  description: string,
+  price: number,
+  deliverables: string,
+  expectedTime: number,
+): Promise<CallResult> => {
+  const tx = new Transaction();
+
+  // Convert string inputs to byte arrays for the Move contract
+  const titleBytes = tx.pure(new TextEncoder().encode(title));
+  const descriptionBytes = tx.pure(new TextEncoder().encode(description));
+  const deliverablesBytes = tx.pure(new TextEncoder().encode(deliverables));
+
+  tx.moveCall({
+    target: `${PACKAGE_ID}::${MODULE_NAME}::list_service`,
+    typeArguments: [],
+    arguments: [
+      tx.object(freelancerCapId),
+      tx.object(MARKETPLACE_ID),
+      titleBytes,
+      descriptionBytes,
+      tx.pure.u64(price),
+      deliverablesBytes,
+      tx.pure.u64(expectedTime),
+    ],
+  });
+
+  try {
+    const result = await client.signAndExecuteTransaction({
+      signer: keypair,
+      transaction: tx,
+      requestType: 'WaitForLocalExecution',
+      options: {
+        showEffects: true,
+      },
+    });
+
+    if (result.effects?.status.status !== 'success') {
+      return {
+        success: false,
+        message: 'Transaction failed: ' + result.effects?.status.error,
+        error: result.effects?.status.error,
+      };
+    } else {
+      return {
+        success: true,
+        message: 'Service listed successfully!',
+        digest: result.digest,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: 'An error occurred during the transaction',
+      error: error,
+    };
+  }
+}
+
 // This is the core smart contract caller that now includes `purchase_service`
 export const callSmartContract = async (
   functionName: string,

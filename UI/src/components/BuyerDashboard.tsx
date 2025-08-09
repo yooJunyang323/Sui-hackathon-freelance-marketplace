@@ -197,7 +197,7 @@ export const BuyerDashboard: React.FC = () => {
   const handleAcceptDelivery = async (orderId: string) => {
     setLoading(true);
     try {
-      const result = await callSmartContract('accept_delivery', [orderId]);
+      const result = await callSmartContract('accept_delivery', orderId);
       alert(result.message);
     } catch (error) {
       alert('Error accepting delivery');
@@ -209,7 +209,7 @@ export const BuyerDashboard: React.FC = () => {
   const handleRejectDelivery = async (orderId: string) => {
     setLoading(true);
     try {
-      const result = await callSmartContract('reject_delivery', [orderId]);
+      const result = await callSmartContract('reject_delivery', orderId);
       alert(result.message);
     } catch (error) {
       alert('Error rejecting delivery');
@@ -221,7 +221,7 @@ export const BuyerDashboard: React.FC = () => {
   const handleExtendDeadline = async (orderId: string) => {
     setLoading(true);
     try {
-      const result = await callSmartContract('extend_deadline', [orderId]);
+      const result = await callSmartContract('extend_deadline', orderId);
       alert(result.message);
     } catch (error) {
       alert('Error extending deadline');

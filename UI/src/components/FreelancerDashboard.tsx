@@ -7,11 +7,18 @@ import { Table } from './Table';
 import { callSmartContract } from '../utils/smartContract';
 import { Service, Order } from '../types';
 
+import { SuiClient } from '@mysten/sui/client';
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+
+const keypair = Ed25519Keypair.generate();
+
 export const FreelancerDashboard: React.FC = () => {
+  const [freelancerCapId, setFreelancerCapId] = useState('');
   const [serviceName, setServiceName] = useState('');
   const [servicePrice, setServicePrice] = useState('');
   const [serviceDescription, setServiceDescription] = useState('');
   const [deliveryTime, setDeliveryTime] = useState('');
+  const [deliverables, setDeliverables] = useState('');
   const [githubUrl, setGithubUrl] = useState('');
   const [commitHash, setCommitHash] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,21 +73,36 @@ export const FreelancerDashboard: React.FC = () => {
   ];
 
   const handleListService = async () => {
-    if (!serviceName || !servicePrice || !serviceDescription || !deliveryTime) return;
+    // Basic validation
+    if (!freelancerCapId || !serviceName || !servicePrice || !serviceDescription || !deliverables || !deliveryTime) {
+      alert('Please fill out all fields and provide your Freelancer Capability ID.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const result = await callSmartContract('list_service', [
-        serviceName, 
-        parseFloat(servicePrice), 
-        serviceDescription, 
-        parseInt(deliveryTime)
-      ]);
-      alert(result.message);
-      setServiceName('');
-      setServicePrice('');
-      setServiceDescription('');
-      setDeliveryTime('');
+      const parsedPrice = parseFloat(servicePrice);
+      const parsedDeliveryTime = parseInt(deliveryTime);
+
+      const response = await callSmartContract(
+        'list_service',
+        '', // newAddress is not used for this function
+        [freelancerCapId, serviceName, serviceDescription, parsedPrice, deliverables, parsedDeliveryTime]
+      );
+
+      if (response.success) {
+        alert('Service listed successfully! Digest: ' + response.digest);
+        // Clear the form on success
+        setServiceName('');
+        setServicePrice('');
+        setServiceDescription('');
+        setDeliveryTime('');
+        setDeliverables('');
+      } else {
+        alert('Transaction failed: ' + response.message);
+      }
     } catch (error) {
+      console.error('Error listing service:', error);
       alert('Error listing service');
     } finally {
       setLoading(false);
@@ -90,7 +112,7 @@ export const FreelancerDashboard: React.FC = () => {
   const handleWithdrawService = async (serviceId: string) => {
     setLoading(true);
     try {
-      const result = await callSmartContract('withdraw_service', [serviceId]);
+      const result = await callSmartContract('withdraw_service', serviceId);
       alert(result.message);
     } catch (error) {
       alert('Error withdrawing service');
@@ -102,7 +124,7 @@ export const FreelancerDashboard: React.FC = () => {
   const handleAcceptOrder = async (orderId: string) => {
     setLoading(true);
     try {
-      const result = await callSmartContract('accept_order', [orderId]);
+      const result = await callSmartContract('accept_order', orderId);
       alert(result.message);
     } catch (error) {
       alert('Error accepting order');
@@ -114,7 +136,7 @@ export const FreelancerDashboard: React.FC = () => {
   const handleRejectOrder = async (orderId: string) => {
     setLoading(true);
     try {
-      const result = await callSmartContract('reject_order', [orderId]);
+      const result = await callSmartContract('reject_order', orderId);
       alert(result.message);
     } catch (error) {
       alert('Error rejecting order');
