@@ -8,8 +8,15 @@ import { Table } from './Table';
 import { callSmartContract } from '../utils/smartContract';
 import { Service, Order } from '../types';
 
+import { SuiClient } from '@mysten/sui/client';
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+
 // CHANGES START HERE
 const MARKETPLACE_OBJECT_ID = import.meta.env.VITE_SUI_PACKAGE_ID; // If using Vite
+const client = new SuiClient({ url: "https://fullnode.testnet.sui.io:443" });
+const keypair = new Ed25519Keypair(); // Replace with your actual keypair
+const buyerCapId = "0x..."; // Replace with the buyer's capability object ID
+const coinType = "0x2::sui::SUI"; // The coin type for payment
 
 export const BuyerDashboard: React.FC = () => {
   const [selectedService, setSelectedService] = useState('');
@@ -151,19 +158,36 @@ export const BuyerDashboard: React.FC = () => {
   // CHANGES END
 
   const handlePurchaseService = async () => {
-    if (!selectedService || !paymentAmount || !requirementsUrl) return;
+    // Check if all necessary inputs are provided
+    if (!selectedService || !paymentAmount || !requirementsUrl || !buyerCapId) {
+      alert('Please fill out all fields and ensure buyerCapId is set.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const result = await callSmartContract('purchase_service', [
-        selectedService, 
-        parseFloat(paymentAmount), 
-        requirementsUrl
-      ]);
-      alert(result.message);
-      setSelectedService('');
-      setPaymentAmount('');
-      setRequirementsUrl('');
+      const price = parseFloat(paymentAmount);
+      // Call the specific function you created
+      // The callSmartContract function expects a function name (string),
+      // an address (string), and an array of parameters.
+      const response = await callSmartContract(
+        'purchase_service', // The name of the function to call
+        '', // newAddress is not used for this function
+        [selectedService, price, requirementsUrl] // The parameters in an array
+      );
+      
+      // Check the transaction status
+      if (response.success === false) {
+        alert('Transaction failed: ' + response.message);
+      } else {
+        alert('Purchase transaction submitted successfully! Digest: ' + response.digest);
+        // Clear the form fields on success
+        setSelectedService('');
+        setPaymentAmount('');
+        setRequirementsUrl('');
+      }
     } catch (error) {
+      console.error('Error purchasing service:', error);
       alert('Error purchasing service');
     } finally {
       setLoading(false);

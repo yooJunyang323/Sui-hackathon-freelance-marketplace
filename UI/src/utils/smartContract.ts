@@ -14,59 +14,42 @@ const SUI_CLOCK_OBJECT_ID = '0x6';
 const keypair = Ed25519Keypair.generate();
 const PACKAGE_ID = "0x3bcb920bef49d3921c412d90053403d6335e54466322b6a0c6dfea8dd2c175e1";
 const MODULE_NAME = "marketplace";
-
+const MARKETPLACE_ID = "0x...";
 // Initialize a provider to connect to a Sui network
 const rpcUrl = getFullnodeUrl('devnet');
 const client = new SuiClient({ url: rpcUrl });
 
-export const callSmartContract = async (
-  functionName: string,
-  newAddress: string,
-  params: any[] = []
-) => {
-  console.log(`Calling smart contract function: ${functionName}`, params);
+// Define a type for a consistent response object.
+interface CallResult {
+  success: boolean;
+  message: string;
+  digest?: string;
+  error?: any;
+}
 
-  switch (functionName) {
-    case 'create_marketplace':
-      return callCreateMarketplace(params);
-    case 'add_freelancer':
-      return callAddFreelancer(newAddress);
-    case 'add_buyer':
-      return callAddBuyer(newAddress);
-    case 'add_admin':
-      return callAddAdmin(newAddress);
-    default:
-      return { success: false, message: 'Unknown function' };
-  }
-};
 // ============================= ADMIN FUNCTION =============================
-const callCreateMarketplace = async (params: any[]) => {
+const callCreateMarketplace = async (params: any[]): Promise<CallResult> => {
   const transaction = new Transaction();
-
-  // Replace with your actual package, module, and function names
   const packageId = PACKAGE_ID;
   const moduleName = MODULE_NAME;
   const marketplaceFunctionName = 'create_marketplace';
 
-  // Build the moveCall command within the transaction
   transaction.moveCall({
     target: `${packageId}::${moduleName}::${marketplaceFunctionName}`,
-    arguments: [], // Add your arguments here if the function takes any
-    typeArguments: [], // Add generic type arguments if needed
+    arguments: [],
+    typeArguments: [],
   });
 
   try {
-    // Execute the transaction
     const result = await client.signAndExecuteTransaction({
       transaction,
       signer: keypair,
     });
-
     console.log('Transaction result:', result);
     return {
       success: true,
       message: 'Marketplace created successfully',
-      digest: result.digest, // The unique transaction ID
+      digest: result.digest,
     };
   } catch (error) {
     console.error('Transaction failed:', error);
@@ -75,14 +58,13 @@ const callCreateMarketplace = async (params: any[]) => {
 };
 
 // Function to call the 'add_freelancer' Sui Move function
-const callAddFreelancer = async (newFreelancerAddress: string) => {
+const callAddFreelancer = async (newFreelancerAddress: string): Promise<CallResult> => {
   const transaction = new Transaction();
-
   const packageId = PACKAGE_ID;
   const moduleName = MODULE_NAME;
   const functionName = 'add_freelancer';
 
-    transaction.moveCall({
+  transaction.moveCall({
     target: `${packageId}::${moduleName}::${functionName}`,
     arguments: [
       transaction.pure.address(newFreelancerAddress),
@@ -90,11 +72,11 @@ const callAddFreelancer = async (newFreelancerAddress: string) => {
   });
 
   try {
-  const result = await client.signAndExecuteTransaction({
+    const result = await client.signAndExecuteTransaction({
       transaction,
       signer: keypair,
     });
-  console.log('Transaction result:', result);
+    console.log('Transaction result:', result);
     return { success: true, message: 'Freelancer added successfully', digest: result.digest };
   } catch (error) {
     console.error('Transaction failed:', error);
@@ -103,14 +85,12 @@ const callAddFreelancer = async (newFreelancerAddress: string) => {
 };
 
 // Function to call the 'add_buyer' Sui Move function
-const callAddBuyer = async (newBuyerAddress: string) => {
+const callAddBuyer = async (newBuyerAddress: string): Promise<CallResult> => {
   const transaction = new Transaction();
-
   const packageId = PACKAGE_ID;
   const moduleName = MODULE_NAME;
   const functionName = 'add_buyer';
 
-  // Build the moveCall command
   transaction.moveCall({
     target: `${packageId}::${moduleName}::${functionName}`,
     arguments: [
@@ -131,9 +111,8 @@ const callAddBuyer = async (newBuyerAddress: string) => {
   }
 };
 
-const callAddAdmin = async (adminAddress: string) => {
+const callAddAdmin = async (adminAddress: string): Promise<CallResult> => {
   const transaction = new Transaction();
-
   const packageId = PACKAGE_ID;
   const moduleName = MODULE_NAME;
   const functionName = 'add_admin';
@@ -164,16 +143,14 @@ const callAddAdmin = async (adminAddress: string) => {
  *
  * @param client The SuiClient instance.
  * @param keypair The Ed25519Keypair of the buyer.
- * @param packageObjectId The ID of your deployed Move package.
  * @param coinType The coin type of the payment (e.g., '0x2::sui::SUI').
- * @param marketplaceId The object ID of the marketplace.
  * @param buyerCapId The object ID of the buyer's capability.
  * @param serviceId The object ID of the service to purchase.
  * @param price The price of the service (in the coin's smallest unit).
  * @param requirementsUrl The URL to the service requirements as a string.
  * @returns The signed transaction block response.
  */
-export async function callPurchaseService(
+const callPurchaseService = async (
   client: SuiClient,
   keypair: Ed25519Keypair,
   coinType: string,
@@ -181,79 +158,88 @@ export async function callPurchaseService(
   serviceId: string,
   price: number,
   requirementsUrl: string,
-): Promise<SuiTransactionBlockResponse> {
+): Promise<CallResult> => {
   const tx = new Transaction();
-
-  const packageId = PACKAGE_ID;
-  const moduleName = MODULE_NAME;
-  const functionName = 'purchase_service';
-  // Create a new coin object from the gas coin to use as payment.
-  // The price is in u64, so we must pass it as a number.
-  // The SDK will handle the splitting of the coin.
   const [payment] = tx.splitCoins(tx.gas, [tx.pure.u64(price)]);
-
-  // The requirements_url is a vector<u8> in Move, which is a byte array.
-  // We must convert the string to a Uint8Array before passing it to tx.pure().
   const requirementsUrlBytes = tx.pure(new TextEncoder().encode(requirementsUrl));
 
-  // Call the `purchase_service` function from your Move module.
   tx.moveCall({
-    target: `${packageId}::${moduleName}::${functionName}`,
+    target: `${PACKAGE_ID}::${MODULE_NAME}::purchase_service`,
     typeArguments: [coinType],
     arguments: [
+      tx.object(MARKETPLACE_ID),
       tx.object(buyerCapId),
       tx.object(serviceId),
-      payment, // Pass the coin object we just created.
+      payment,
       requirementsUrlBytes,
-      tx.object(SUI_CLOCK_OBJECT_ID), // The global Clock object
+      tx.object(SUI_CLOCK_OBJECT_ID),
     ],
   });
 
-  // Sign and execute the transaction.
-  return await client.signAndExecuteTransaction({
-    signer: keypair,
-    transaction: tx,
-    requestType: 'WaitForLocalExecution',
-    options: {
-      showEffects: true,
-    },
-  });
-}
-
-/**
- * Example usage of the callPurchaseService function.
- * You would need to replace these placeholder values with real data from your app.
- */
-async function main() {
-  // Replace with your client, keypair, and object IDs.
-  const client = new SuiClient({ url: "https://fullnode.testnet.sui.io:443" });
-  const myPrivateKey = "suiprivkey1q..."; // Your private key.
-  const keypair = Ed25519Keypair.fromSecretKey(myPrivateKey);
-  const coinType = "0x2::sui::SUI"; // Example: using SUI as the payment coin.
-  const buyerCapId = "0x...";
-  const serviceId = "0x...";
-  const price = 10000; // 10000 MIST (0.00001 SUI)
-  const requirementsUrl = "https://example.com/requirements/123";
-
   try {
-    const response = await callPurchaseService(
-      client,
-      keypair,
-      coinType,
-      buyerCapId,
-      serviceId,
-      price,
-      requirementsUrl,
-    );
-    console.log("Purchase transaction submitted successfully!");
-    console.log("Digest:", response.digest);
+    const result = await client.signAndExecuteTransaction({
+      signer: keypair,
+      transaction: tx,
+      requestType: 'WaitForLocalExecution',
+      options: {
+        showEffects: true,
+      },
+    });
 
-    if (response.effects?.status.status !== 'success') {
-        console.error("Transaction failed:", response.effects?.status.error);
+    if (result.effects?.status.status !== 'success') {
+      return {
+        success: false,
+        message: 'Transaction failed: ' + result.effects?.status.error,
+        error: result.effects?.status.error,
+      };
     } else {
-        console.log("Transaction successful!");
+      return {
+        success: true,
+        message: 'Transaction submitted successfully!',
+        digest: result.digest,
+      };
     }
   } catch (error) {
-    console.error("Failed to purchase service:", error);
+    return {
+      success: false,
+      message: 'An error occurred during the transaction',
+      error: error,
+    };
   }
 }
+
+// This is the core smart contract caller that now includes `purchase_service`
+export const callSmartContract = async (
+  functionName: string,
+  newAddress: string,
+  params: any[] = []
+): Promise<CallResult> => {
+  console.log(`Calling smart contract function: ${functionName}`, params);
+
+  switch (functionName) {
+    case 'create_marketplace':
+      return await callCreateMarketplace(params);
+    case 'add_freelancer':
+      return await callAddFreelancer(newAddress);
+    case 'add_buyer':
+      return await callAddBuyer(newAddress);
+    case 'add_admin':
+      return await callAddAdmin(newAddress);
+    case 'purchase_service':
+      const [serviceId, price, requirementsUrl] = params;
+      const buyerCapId = "0x..."; // This needs to be provided by the app's state
+      const coinType = "0x2::sui::SUI"; // This should also be a variable
+      
+      return await callPurchaseService(
+        client,
+        keypair,
+        coinType,
+        buyerCapId,
+        serviceId,
+        price,
+        requirementsUrl
+      );
+    default:
+      return { success: false, message: 'Unknown function' };
+  }
+};
