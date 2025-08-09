@@ -1,4 +1,5 @@
-const WALRUS_BASE_URL = "https://walrus.example.com/api";
+const WALRUS_BASE_URL = "http://localhost:3000";
+
 
 export async function storeEncryptedRepo(userAddress: string, encryptedRepo: string) {
   // POST encrypted repo for the user address
