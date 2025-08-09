@@ -124,3 +124,4 @@ const callAddBuyer = async (newBuyerAddress: string) => {
     return { success: false, message: 'Failed to add buyer', error: error };
   }
 };
+
