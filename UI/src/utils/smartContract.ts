@@ -4,7 +4,7 @@ import {
   RawSigner,
   Connection,
   TransactionBlock,
-} from "@mysten/sui.js";
+} from "@mysten/sui";
 import { Ed25519Keypair } from "@mysten/sui.js/keypairs/ed25519";
 
 // Load credentials from environment variables for security
