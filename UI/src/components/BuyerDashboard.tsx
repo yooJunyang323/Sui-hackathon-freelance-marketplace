@@ -17,6 +17,7 @@ const client = new SuiClient({ url: "https://fullnode.testnet.sui.io:443" });
 const keypair = new Ed25519Keypair(); // Replace with your actual keypair
 const buyerCapId = "0x..."; // Replace with the buyer's capability object ID
 const coinType = "0x2::sui::SUI"; // The coin type for payment
+const service_id = "0x174ce3e5ee7e13d0d4fbb11fa86478cf35072fce60ff813e0b2ab56132cc3472";
 
 export const BuyerDashboard: React.FC = () => {
   const [selectedService, setSelectedService] = useState('');
