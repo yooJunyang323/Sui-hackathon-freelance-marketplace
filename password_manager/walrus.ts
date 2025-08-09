@@ -19,15 +19,19 @@ const WALRUS_BASE_URL = "http://localhost:3000";
 //   const data = await res.json();
 //   return data.encryptedRepo || null;
 // }
+
+
 export async function storeEncryptedRepo(
   userAddress: string,
   orderId: string,
-  encryptedRepo: string
+  encryptedData: string
 ) {
   const res = await fetch(`${WALRUS_BASE_URL}/store`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userAddress, orderId, encryptedRepo }),
+    body: JSON.stringify({ userAddress, orderId, encryptedRepo: encryptedData, encryptedCommit: encryptedData }),
+    // But this sends duplicate encryptedData as both encryptedRepo and encryptedCommit
+    // We should send only one field now, so modify server API accordingly.
   });
   if (!res.ok) throw new Error("Failed to store encrypted repo");
   return await res.json();
@@ -42,5 +46,5 @@ export async function fetchEncryptedRepo(
   );
   if (!res.ok) throw new Error("Failed to fetch encrypted repo");
   const data = await res.json();
-  return data.encryptedRepo || null;
+  return data.encryptedData || null;
 }

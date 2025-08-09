@@ -24,15 +24,17 @@ const encryptedRepos = {};
 //   encryptedRepos[userAddress] = encryptedRepo;
 //   console.log(`Stored encrypted repo for ${userAddress}`);
 //   return res.json({ success: true });
+
+// Store encrypted repo URL and commit hash for a user address + orderId
 app.post("/store", (req, res) => {
-  const { userAddress, orderId, encryptedRepo } = req.body;
-  if (!userAddress || !encryptedRepo || !orderId) {
-    return res.status(400).json({ error: "Missing userAddress, orderId or encryptedRepo" });
+  const { userAddress, orderId, encryptedRepo, encryptedCommit } = req.body;
+  if (!userAddress || !encryptedRepo || !orderId || !encryptedCommit) {
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
   const key = `${userAddress}_${orderId}`;
-  encryptedRepos[key] = encryptedRepo;
-  console.log(`Stored encrypted repo for ${key}`);
+  encryptedRepos[key] = { encryptedRepo, encryptedCommit };
+  console.log(`Stored encrypted repo and commit for ${key}`);
   return res.json({ success: true });
 });
 
@@ -45,6 +47,9 @@ app.post("/store", (req, res) => {
 
 //   const encryptedRepo = encryptedRepos[userAddress] || null;
 //   return res.json({ encryptedRepo });
+
+
+// Fetch encrypted repo URL and commit hash for a user address + orderId
 app.get("/repo", (req, res) => {
   const { userAddress, orderId } = req.query;
   if (!userAddress || !orderId) {
@@ -52,10 +57,6 @@ app.get("/repo", (req, res) => {
   }
 
   const key = `${userAddress}_${orderId}`;
-  const encryptedRepo = encryptedRepos[key] || null;
-  return res.json({ encryptedRepo });
-});
-
-app.listen(PORT, () => {
-  console.log(`Walrus server running at http://localhost:${PORT}`);
+  const encryptedData = encryptedRepos[key] || null;
+  return res.json({ encryptedData });
 });

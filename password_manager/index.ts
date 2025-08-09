@@ -1,5 +1,5 @@
-// import { encrypt, decrypt } from "./seal";
-// import { storeEncryptedRepo, fetchEncryptedRepo } from "./walrus";
+import { encrypt, decrypt } from "./seal";
+import { storeEncryptedRepo, fetchEncryptedRepo } from "./walrus";
 
 // // your other imports and app code here
 
@@ -25,29 +25,34 @@
 //   return decryptedRepo;
 // }
 
-import { encrypt, decrypt } from "./seal";
-import { storeEncryptedRepo, fetchEncryptedRepo } from "./walrus";
 
-// This function fetches the encrypted repo URL and decrypts it for display
+export async function storeOrderData(
+  userAddress: string,
+  orderId: string,
+  repoUrl: string,
+  commitHash: string
+) {
+  const encryptedData = encrypt({ repoUrl, commitHash }, userAddress);
+  await storeEncryptedRepo(userAddress, orderId, encryptedData);
+}
+
 export async function onAcceptCompletion(userAddress: string, orderId: string) {
   try {
-    // Fetch encrypted repo link from Walrus server using composite key
-    const encryptedRepo = await fetchEncryptedRepo(userAddress, orderId);
-    if (!encryptedRepo) {
-      throw new Error("No encrypted repo found for this order");
-    }
+    const encryptedData = await fetchEncryptedRepo(userAddress, orderId);
+    if (!encryptedData) throw new Error("No encrypted data found for this order");
 
-    // Decrypt using the user address key
-    const decryptedRepoUrl = decrypt(encryptedRepo, userAddress);
+    const { repoUrl, commitHash } = decrypt(encryptedData, userAddress);
 
-    // Now you can display or return the decrypted repo URL safely to the user
-    console.log("Decrypted GitHub Repo URL:", decryptedRepoUrl);
-    return decryptedRepoUrl;
+    console.log("Decrypted GitHub Repo URL:", repoUrl);
+    console.log("Decrypted Git Commit Hash:", commitHash);
+
+    return { repoUrl, commitHash };
   } catch (error) {
-    console.error("Failed to decrypt or fetch repo URL:", error);
+    console.error("Failed to decrypt or fetch repo data:", error);
     throw error;
   }
 }
+
 
 
 // Usage in UI 
