@@ -60,19 +60,42 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const handleAddUser = async () => {
-    if (!userAddress || !userRole) return;
-    setLoading(true);
-    try {
-      const result = await callSmartContract('add_user', [userAddress, userRole]);
+  if (!userAddress || !userRole) {
+    alert('Please enter a user address and select a role.');
+    return;
+  }
+  
+  setLoading(true);
+  try {
+    let result;
+    
+    switch (userRole) {
+      case 'buyer':
+        result = await callSmartContract('add_buyer', userAddress);
+        break;
+      case 'freelancer':
+        result = await callSmartContract('add_freelancer', userAddress);
+        break;
+      default:
+        alert('Invalid user role selected.');
+        setLoading(false);
+        return;
+    }
+
+    if (result && result.success) {
       alert(result.message);
       setUserAddress('');
       setUserRole('');
-    } catch (error) {
-      alert('Error adding user');
-    } finally {
-      setLoading(false);
+    } else if (result) {
+      alert(result.message);
     }
-  };
+
+  } catch (error) {
+    alert('Error adding user');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleAddAdmin = async () => {
     if (!adminAddress) return;
