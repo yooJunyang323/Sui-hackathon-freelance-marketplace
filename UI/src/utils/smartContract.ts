@@ -8,6 +8,8 @@ import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 // This function needs to be outside of the contract call or passed in
 // For a dApp, this keypair would be handled by a wallet SDK
 const keypair = Ed25519Keypair.generate();
+const PACKAGE_ID = "0x3bcb920bef49d3921c412d90053403d6335e54466322b6a0c6dfea8dd2c175e1";
+const MODULE_NAME = "marketplace";
 
 // Initialize a provider to connect to a Sui network
 const rpcUrl = getFullnodeUrl('devnet');
@@ -36,8 +38,8 @@ const callCreateMarketplace = async (params: any[]) => {
   const transaction = new Transaction();
 
   // Replace with your actual package, module, and function names
-  const packageId = '0x...'; // Your package ID
-  const moduleName = 'marketplace';
+  const packageId = PACKAGE_ID;
+  const moduleName = MODULE_NAME;
   const marketplaceFunctionName = 'create_marketplace';
 
   // Build the moveCall command within the transaction
@@ -70,8 +72,8 @@ const callCreateMarketplace = async (params: any[]) => {
 const callAddFreelancer = async (newFreelancerAddress: string) => {
   const transaction = new Transaction();
 
-  const packageId = '0x...'; // Your package ID
-  const moduleName = 'user_management';
+  const packageId = PACKAGE_ID;
+  const moduleName = MODULE_NAME;
   const functionName = 'add_freelancer';
 
     transaction.moveCall({
@@ -98,8 +100,8 @@ const callAddFreelancer = async (newFreelancerAddress: string) => {
 const callAddBuyer = async (newBuyerAddress: string) => {
   const transaction = new Transaction();
 
-  const packageId = '0x...'; // Your package ID
-  const moduleName = 'user_management';
+  const packageId = PACKAGE_ID;
+  const moduleName = MODULE_NAME;
   const functionName = 'add_buyer';
 
   // Build the moveCall command
