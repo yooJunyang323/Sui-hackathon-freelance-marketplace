@@ -1,5 +1,7 @@
 import { Buffer } from "buffer";
-(window as any).Buffer = Buffer;
+if (typeof window !== "undefined") {
+  (window as any).Buffer = Buffer;
+}
 // your other imports and app code here
 
 import crypto from "crypto";
@@ -29,8 +31,8 @@ export function encrypt(repoUrl: string, userAddress: string): string {
 export function decrypt(encryptedData: string, userAddress: string): string {
   const key = deriveKey(userAddress);
   const iv = Buffer.from(encryptedData.slice(0, 24), "hex");
-  const tag = Buffer.from(encryptedData.slice(24, 48), "hex");
-  const encrypted = encryptedData.slice(48);
+  const tag = Buffer.from(encryptedData.slice(24, 56), "hex");
+  const encrypted = encryptedData.slice(56);
 
   const decipher = crypto.createDecipheriv(algorithm, key, iv);
   decipher.setAuthTag(tag);
