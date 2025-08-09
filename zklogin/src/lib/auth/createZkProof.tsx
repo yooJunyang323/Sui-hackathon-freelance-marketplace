@@ -24,7 +24,7 @@ function toBase64Url(base64: string): string {
 export async function generateProof(jwt: string, setupData: ZkLoginSetup) {
   const [header, payload, signature] = jwt.split('.');
   const decodedPayload = JSON.parse(atob(payload));
-
+  
   
   let salt = localStorage.getItem('zklogin-salt');
   if (!salt) {
