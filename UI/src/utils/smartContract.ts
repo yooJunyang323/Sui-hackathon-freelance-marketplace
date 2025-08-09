@@ -125,4 +125,3 @@ const callAddBuyer = async (newBuyerAddress: string) => {
   }
 };
 
-a
