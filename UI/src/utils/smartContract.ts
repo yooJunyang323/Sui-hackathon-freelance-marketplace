@@ -313,6 +313,57 @@ const callRejectDelivery = async (
   }
 };
 
+const callExtendDeadline = async (
+  client: SuiClient,
+  keypair: Ed25519Keypair,
+  buyerCapId: string,
+  orderId: string,
+): Promise<CallResult> => {
+  const tx = new Transaction();
+
+  tx.moveCall({
+    target: `${PACKAGE_ID}::${MODULE_NAME}::extend_deadline`,
+    typeArguments: [],
+    arguments: [
+      tx.object(MARKETPLACE_ID),
+      tx.object(buyerCapId),
+      tx.object(orderId),
+      tx.object(SUI_CLOCK_OBJECT_ID),
+    ],
+  });
+
+  try {
+    const result = await client.signAndExecuteTransaction({
+      signer: keypair,
+      transaction: tx,
+      requestType: 'WaitForLocalExecution',
+      options: {
+        showEffects: true,
+      },
+    });
+
+    if (result.effects?.status.status !== 'success') {
+      return {
+        success: false,
+        message: 'Transaction failed: ' + result.effects?.status.error,
+        error: result.effects?.status.error,
+      };
+    } else {
+      return {
+        success: true,
+        message: 'Deadline extended successfully!',
+        digest: result.digest,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: 'An error occurred during the transaction',
+      error: error,
+    };
+  }
+}
+
 // ============================= FREELANCER FUNCTION =============================
 const callListService = async (
   client: SuiClient,
@@ -610,6 +661,14 @@ export const callSmartContract = async (
         buyerCapId_reject,
         orderId_reject_delivery,
         serviceId_reject_delivery
+      );
+    case 'extend_deadline':
+      const [buyerCapId_extend, orderId_extend] = params;
+      return await callExtendDeadline(
+        client,
+        keypair,
+        buyerCapId_extend,
+        orderId_extend
       );
     default:
       return { success: false, message: 'Unknown function' };

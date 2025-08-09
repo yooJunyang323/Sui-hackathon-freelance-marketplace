@@ -30,7 +30,20 @@ export const BuyerDashboard: React.FC = () => {
   // --- STATE TO HOLD PURCHASED ORDERS ---
   const [purchasedOrders, setPurchasedOrders] = useState<Order[]>([]);
   // State for different order stages
-  const [inProgressOrders, setInProgressOrders] = useState<Order[]>([]);
+  const [inProgressOrders, setInProgressOrders] = useState<Order[]>([
+    // Mock data for an in-progress order with a past deadline
+    {
+      id: '0xmockorder_inprogress_1',
+      service_id: '0xf78cfb336946aa327ea141a4eb1534a4d050f85b0e23071fee6c430925cc3ced',
+      buyer_address: '0xbuyer...1234',
+      freelancer_address: '0x1234...5678',
+      payment_amount: 500,
+      requirements_url: 'https://example.com/requirements',
+      status: 'in_progress',
+      created_at: '2024-01-10',
+      deadline: '2024-01-15' // A past deadline
+    }
+  ]);
   const [deliveredOrders, setDeliveredOrders] = useState<Order[]>([
     // Mock data for a delivered order awaiting review
     {
@@ -256,10 +269,33 @@ export const BuyerDashboard: React.FC = () => {
   const handleExtendDeadline = async (orderId: string) => {
     setLoading(true);
     try {
-      const result = await callSmartContract('extend_deadline', orderId);
-      alert(result.message);
+      // Find the order to be extended
+      const orderToExtend = inProgressOrders.find(order => order.id === orderId);
+      if (!orderToExtend || !orderToExtend.deadline) {
+        console.error('Order not found or has no deadline.');
+        return;
+      }
+
+      // Calculate the new deadline by adding 7 days
+      const currentDeadline = new Date(orderToExtend.deadline);
+      currentDeadline.setDate(currentDeadline.getDate() + 7);
+      const newDeadline = currentDeadline.toISOString().split('T')[0];
+
+      // Simulate smart contract call with the new deadline
+      const result = await callSmartContract('extend_deadline', orderId, [newDeadline]);
+      
+      if (result.success) {
+        // Update the state with the new deadline
+        const updatedOrders = inProgressOrders.map(order => 
+          order.id === orderId ? { ...order, deadline: newDeadline } : order
+        );
+        setInProgressOrders(updatedOrders);
+        console.log(result.message);
+      } else {
+        console.error('Failed to extend deadline:', result.message);
+      }
     } catch (error) {
-      alert('Error extending deadline');
+      console.error('Error extending deadline', error);
     } finally {
       setLoading(false);
     }
