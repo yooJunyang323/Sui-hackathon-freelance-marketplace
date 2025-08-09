@@ -55,9 +55,3 @@ export async function onAcceptCompletion(userAddress: string, orderId: string) {
 
 
 
-// Usage in UI 
-// async function handleAcceptCompletion(userAddress: string, orderId: string) {
-//   const repoUrl = await onAcceptCompletion(userAddress, orderId);
-//   alert(`Here is the delivered GitHub repo URL:\n${repoUrl}`);
-// }
-

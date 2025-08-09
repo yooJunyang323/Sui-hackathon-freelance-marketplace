@@ -27,14 +27,14 @@ const encryptedRepos = {};
 
 // Store encrypted repo URL and commit hash for a user address + orderId
 app.post("/store", (req, res) => {
-  const { userAddress, orderId, encryptedRepo, encryptedCommit } = req.body;
-  if (!userAddress || !encryptedRepo || !orderId || !encryptedCommit) {
-    return res.status(400).json({ error: "Missing required fields" });
+  const { userAddress, orderId, encryptedData } = req.body;
+  if (!userAddress || !orderId || !encryptedData) {
+    return res.status(400).json({ error: "Missing userAddress, orderId or encryptedData" });
   }
 
   const key = `${userAddress}_${orderId}`;
-  encryptedRepos[key] = { encryptedRepo, encryptedCommit };
-  console.log(`Stored encrypted repo and commit for ${key}`);
+  encryptedRepos[key] = encryptedData;
+  console.log(`Stored encrypted data for ${key}`);
   return res.json({ success: true });
 });
 
@@ -55,7 +55,7 @@ app.get("/repo", (req, res) => {
   if (!userAddress || !orderId) {
     return res.status(400).json({ error: "Missing userAddress or orderId query parameter" });
   }
-
+  
   const key = `${userAddress}_${orderId}`;
   const encryptedData = encryptedRepos[key] || null;
   return res.json({ encryptedData });
