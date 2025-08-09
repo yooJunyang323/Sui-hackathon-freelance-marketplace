@@ -2,3 +2,4 @@ build/*
 .trace
 .coverage*
 data.txt
+syntax.txt
