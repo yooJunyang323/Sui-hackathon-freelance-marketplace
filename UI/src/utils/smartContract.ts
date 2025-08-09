@@ -272,6 +272,56 @@ const callListService = async (
   }
 }
 
+const callWithdrawService = async (
+  client: SuiClient,
+  keypair: Ed25519Keypair,
+  freelancerCapId: string,
+  serviceId: string,
+): Promise<CallResult> => {
+  const tx = new Transaction();
+
+  tx.moveCall({
+    target: `${PACKAGE_ID}::${MODULE_NAME}::withdraw_service`,
+    typeArguments: [],
+    arguments: [
+      tx.object(freelancerCapId),
+      tx.object(MARKETPLACE_ID),
+      tx.object(serviceId),
+    ],
+  });
+
+  try {
+    const result = await client.signAndExecuteTransaction({
+      signer: keypair,
+      transaction: tx,
+      requestType: 'WaitForLocalExecution',
+      options: {
+        showEffects: true,
+      },
+    });
+
+    if (result.effects?.status.status !== 'success') {
+      return {
+        success: false,
+        message: 'Transaction failed: ' + result.effects?.status.error,
+        error: result.effects?.status.error,
+      };
+    } else {
+      return {
+        success: true,
+        message: 'Service withdrawn successfully!',
+        digest: result.digest,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: 'An error occurred during the transaction',
+      error: error,
+    };
+  }
+}
+
 // This is the core smart contract caller that now includes `purchase_service`
 export const callSmartContract = async (
   functionName: string,
@@ -314,6 +364,14 @@ export const callSmartContract = async (
         price_list,
         deliverables,
         expectedTime,
+      );
+    case 'withdraw_service':
+      const [freelancerCapId_withdraw, serviceId_withdraw] = params;
+      return await callWithdrawService(
+        client,
+        keypair,
+        freelancerCapId_withdraw,
+        serviceId_withdraw,
       );
     default:
       return { success: false, message: 'Unknown function' };

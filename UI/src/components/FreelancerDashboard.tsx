@@ -112,8 +112,17 @@ export const FreelancerDashboard: React.FC = () => {
   const handleWithdrawService = async (serviceId: string) => {
     setLoading(true);
     try {
-      const result = await callSmartContract('withdraw_service', serviceId);
-      alert(result.message);
+      if (!freelancerCapId) {
+        alert('Please enter your Freelancer Capability ID to withdraw a service.');
+        return;
+      }
+      const result = await callSmartContract('withdraw_service', '', [freelancerCapId, serviceId]);
+      if (result.success) {
+        alert(result.message);
+        // You would typically refetch the list of services here
+      } else {
+        alert(result.message);
+      }
     } catch (error) {
       alert('Error withdrawing service');
     } finally {
