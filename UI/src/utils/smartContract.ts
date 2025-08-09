@@ -1,78 +1,38 @@
 // smartContract.ts
-import {
-  JsonRpcProvider,
-  RawSigner,
-  Connection,
-  TransactionBlock,
-} from "@mysten/sui.js";
-import { Ed25519Keypair } from "@mysten/sui.js/keypairs/ed25519";
+import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
+import { TransactionBlock } from '@mysten/sui.js/transactions';
 
-// Load credentials from environment variables for security
-const SUI_PRIVATE_KEY = process.env.SUI_PRIVATE_KEY;
-const SUI_PACKAGE_ID = process.env.SUI_PACKAGE_ID;
+// Initialize Sui client (use your preferred RPC endpoint)
+const client = new SuiClient({ url: getFullnodeUrl('mainnet') });
 
-if (!SUI_PRIVATE_KEY || !SUI_PACKAGE_ID) {
-  throw new Error("SUI_PRIVATE_KEY and SUI_PACKAGE_ID must be set in environment variables");
-}
+/**
+ * Calls a Sui Move function on-chain.
+ * @param packageId The on-chain package ID (string, e.g. "0x123...")
+ * @param moduleName The Move module name (string)
+ * @param functionName The Move function name (string)
+ * @param args The arguments for the Move function (array)
+ * @param signer The wallet signer (from your wallet adapter)
+ * @returns The transaction response from Sui
+ */
+export const callSuiMoveFunction = async (
+  packageId: string,
+  moduleName: string,
+  functionName: string,
+  args: any[],
+  signer: any // e.g. from wallet adapter, like SuiWallet, Suiet, etc.
+) => {
+  // Build the transaction block
+  const txb = new TransactionBlock();
+  txb.moveCall({
+    target: `${packageId}::${moduleName}::${functionName}`,
+    arguments: args.map(arg => txb.pure(arg)),
+  });
 
-// Set up the connection to a Sui network (e.g., devnet)
-const connection = new Connection({
-  fullnode: "https://fullnode.devnet.sui.io:443",
-});
-const provider = new JsonRpcProvider(connection);
+  // Sign and execute the transaction block
+  const result = await signer.signAndExecuteTransactionBlock({
+    transactionBlock: txb,
+    options: { showEffects: true, showEvents: true },
+  });
 
-// Create a signer from the private key
-const keypair = Ed25519Keypair.fromSecretKey(Buffer.from(SUI_PRIVATE_KEY, "hex"));
-const signer = new RawSigner(keypair, provider);
-
-export const callSmartContract = async (functionName: string, params: any[] = []) => {
-  console.log(`Calling real Sui function: ${functionName}`, params);
-
-  const tx = new TransactionBlock();
-
-  try {
-    // This switch statement now builds a real transaction block
-    switch (functionName) {
-      case 'create_marketplace':
-        tx.moveCall({
-          target: `${SUI_PACKAGE_ID}::marketplace::create_marketplace`,
-          arguments: [],
-        });
-        break;
-      case 'add_user':
-        // params[0] would be the user's address, for example
-        tx.moveCall({
-          target: `${SUI_PACKAGE_ID}::marketplace::add_user`,
-          arguments: params,
-        });
-        break;
-      // You must add cases for all your other functions here
-      // For each function, you define the correct target and arguments
-      case 'list_service':
-        tx.moveCall({
-          target: `${SUI_PACKAGE_ID}::marketplace::list_service`,
-          arguments: params,
-        });
-        break;
-      case 'purchase_service':
-        tx.moveCall({
-          target: `${SUI_PACKAGE_ID}::marketplace::purchase_service`,
-          arguments: params,
-        });
-        break;
-      // Add more cases for the rest of your functions...
-      default:
-        return { success: false, message: `Unknown function: ${functionName}` };
-    }
-
-    // Sign and execute the transaction block
-    const result = await signer.signAndExecuteTransactionBlock({ transactionBlock: tx });
-
-    console.log("Transaction successful:", result);
-    return { success: true, message: `${functionName} executed successfully`, data: result };
-
-  } catch (error) {
-    console.error("Transaction failed:", error);
-    return { success: false, message: `Transaction failed: ${error.message}` };
-  }
+  return result;
 };
