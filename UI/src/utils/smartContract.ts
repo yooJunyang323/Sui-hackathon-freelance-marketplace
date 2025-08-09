@@ -208,6 +208,111 @@ const callPurchaseService = async (
   }
 }
 
+const callAcceptDelivery = async (
+  client: SuiClient,
+  keypair: Ed25519Keypair,
+  buyerCapId: string,
+  orderId: string,
+  serviceId: string,
+): Promise<CallResult> => {
+  const tx = new Transaction();
+  
+  tx.moveCall({
+    target: `${PACKAGE_ID}::${MODULE_NAME}::accept_delivery`,
+    typeArguments: [],
+    arguments: [
+      tx.object(MARKETPLACE_ID),
+      tx.object(buyerCapId),
+      tx.object(serviceId),
+      tx.object(orderId),
+      tx.object(SUI_CLOCK_OBJECT_ID),
+    ],
+  });
+  
+  try {
+    const result = await client.signAndExecuteTransaction({
+      signer: keypair,
+      transaction: tx,
+      requestType: 'WaitForLocalExecution',
+      options: {
+        showEffects: true,
+      },
+    });
+    
+    if (result.effects?.status.status !== 'success') {
+      return {
+        success: false,
+        message: 'Transaction failed: ' + result.effects?.status.error,
+        error: result.effects?.status.error,
+      };
+    } else {
+      return {
+        success: true,
+        message: 'Delivery accepted successfully!',
+        digest: result.digest,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: 'An error occurred during the transaction',
+      error: error,
+    };
+  }
+};
+
+const callRejectDelivery = async (
+  client: SuiClient,
+  keypair: Ed25519Keypair,
+  buyerCapId: string,
+  orderId: string,
+  serviceId: string,
+): Promise<CallResult> => {
+  const tx = new Transaction();
+  
+  tx.moveCall({
+    target: `${PACKAGE_ID}::${MODULE_NAME}::reject_delivery`,
+    typeArguments: [],
+    arguments: [
+      tx.object(MARKETPLACE_ID),
+      tx.object(buyerCapId),
+      tx.object(serviceId),
+      tx.object(orderId),
+    ],
+  });
+  
+  try {
+    const result = await client.signAndExecuteTransaction({
+      signer: keypair,
+      transaction: tx,
+      requestType: 'WaitForLocalExecution',
+      options: {
+        showEffects: true,
+      },
+    });
+    
+    if (result.effects?.status.status !== 'success') {
+      return {
+        success: false,
+        message: 'Transaction failed: ' + result.effects?.status.error,
+        error: result.effects?.status.error,
+      };
+    } else {
+      return {
+        success: true,
+        message: 'Delivery rejected successfully!',
+        digest: result.digest,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: 'An error occurred during the transaction',
+      error: error,
+    };
+  }
+};
+
 // ============================= FREELANCER FUNCTION =============================
 const callListService = async (
   client: SuiClient,
@@ -322,8 +427,107 @@ const callWithdrawService = async (
   }
 }
 
-// This is the core smart contract caller that now includes `purchase_service`
-export const callSmartContract = async (
+export const callAcceptOrder = async (
+  client: SuiClient,
+  keypair: Ed25519Keypair,
+  freelancerCapId: string,
+  orderId: string,
+): Promise<CallResult> => {
+  const tx = new Transaction();
+  
+  tx.moveCall({
+    target: `${PACKAGE_ID}::${MODULE_NAME}::accept_order`,
+    typeArguments: [],
+    arguments: [
+      tx.object(freelancerCapId),
+      tx.object(MARKETPLACE_ID),
+      tx.object(orderId),
+    ],
+  });
+  
+  try {
+    const result = await client.signAndExecuteTransaction({
+      signer: keypair,
+      transaction: tx,
+      requestType: 'WaitForLocalExecution',
+      options: {
+        showEffects: true,
+      },
+    });
+    
+    if (result.effects?.status.status !== 'success') {
+      return {
+        success: false,
+        message: 'Transaction failed: ' + result.effects?.status.error,
+        error: result.effects?.status.error,
+      };
+    } else {
+      return {
+        success: true,
+        message: 'Order accepted successfully!',
+        digest: result.digest,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: 'An error occurred during the transaction',
+      error: error,
+    };
+  }
+};
+
+const callRejectOrder = async (
+  client: SuiClient,
+  keypair: Ed25519Keypair,
+  freelancerCapId: string,
+  orderId: string,
+): Promise<CallResult> => {
+  const tx = new Transaction();
+  
+  tx.moveCall({
+    target: `${PACKAGE_ID}::${MODULE_NAME}::reject_order`,
+    typeArguments: [],
+    arguments: [
+      tx.object(freelancerCapId),
+      tx.object(MARKETPLACE_ID),
+      tx.object(orderId),
+    ],
+  });
+  
+  try {
+    const result = await client.signAndExecuteTransaction({
+      signer: keypair,
+      transaction: tx,
+      requestType: 'WaitForLocalExecution',
+      options: {
+        showEffects: true,
+      },
+    });
+    
+    if (result.effects?.status.status !== 'success') {
+      return {
+        success: false,
+        message: 'Transaction failed: ' + result.effects?.status.error,
+        error: result.effects?.status.error,
+      };
+    } else {
+      return {
+        success: true,
+        message: 'Order rejected and terminated successfully!',
+        digest: result.digest,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: 'An error occurred during the transaction',
+      error: error,
+    };
+  }
+};
+
+const callSmartContract = async (
   functionName: string,
   newAddress: string,
   params: any[] = []
@@ -372,6 +576,40 @@ export const callSmartContract = async (
         keypair,
         freelancerCapId_withdraw,
         serviceId_withdraw,
+      );
+    case 'accept_order':
+      const [freelancerCapId_accept, orderId_accept] = params;
+      return await callAcceptOrder(
+        client,
+        keypair,
+        freelancerCapId_accept,
+        orderId_accept
+      );
+    case 'reject_order':
+      const [freelancerCapId_reject, orderId_reject] = params;
+      return await callRejectOrder(
+        client,
+        keypair,
+        freelancerCapId_reject,
+        orderId_reject
+      );
+    case 'accept_delivery':
+      const [buyerCapId_accept, orderId_accept_delivery, serviceId_accept_delivery] = params;
+      return await callAcceptDelivery(
+        client,
+        keypair,
+        buyerCapId_accept,
+        orderId_accept_delivery,
+        serviceId_accept_delivery
+      );
+    case 'reject_delivery':
+      const [buyerCapId_reject, orderId_reject_delivery, serviceId_reject_delivery] = params;
+      return await callRejectDelivery(
+        client,
+        keypair,
+        buyerCapId_reject,
+        orderId_reject_delivery,
+        serviceId_reject_delivery
       );
     default:
       return { success: false, message: 'Unknown function' };

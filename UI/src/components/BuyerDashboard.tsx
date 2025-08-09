@@ -12,23 +12,48 @@ import { SuiClient } from '@mysten/sui/client';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 
 // CHANGES START HERE
-const MARKETPLACE_OBJECT_ID = import.meta.env.VITE_SUI_PACKAGE_ID; // If using Vite
+// This is the correct way to import an environment variable for the package ID
+const MARKETPLACE_OBJECT_ID = import.meta.env.VITE_SUI_PACKAGE_ID;
+
+// For a real DApp, you would connect to a user's wallet to get the client
+// and signing capabilities. Hardcoding is fine for testing.
 const client = new SuiClient({ url: "https://fullnode.testnet.sui.io:443" });
-const keypair = new Ed25519Keypair(); // Replace with your actual keypair
-const buyerCapId = "0x..."; // Replace with the buyer's capability object ID
 const coinType = "0x2::sui::SUI"; // The coin type for payment
-const service_id = "0x174ce3e5ee7e13d0d4fbb11fa86478cf35072fce60ff813e0b2ab56132cc3472";
 
 export const BuyerDashboard: React.FC = () => {
   const [selectedService, setSelectedService] = useState('');
+  const [buyerCapId, setBuyerCapId] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [requirementsUrl, setRequirementsUrl] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // --- STATE TO HOLD PURCHASED ORDERS ---
+  const [purchasedOrders, setPurchasedOrders] = useState<Order[]>([]);
+  // State for different order stages
+  const [inProgressOrders, setInProgressOrders] = useState<Order[]>([]);
+  const [deliveredOrders, setDeliveredOrders] = useState<Order[]>([
+    // Mock data for a delivered order awaiting review
+    {
+      id: '0xmockorder_delivered',
+      service_id: '0xf78cfb336946aa327ea141a4eb1534a4d050f85b0e23071fee6c430925cc3ced',
+      buyer_address: '0xbuyer...1234',
+      freelancer_address: '0x1234...5678',
+      payment_amount: 500,
+      requirements_url: 'https://example.com/requirements',
+      status: 'delivered',
+      github_url: 'https://github.com/freelancer/project',
+      commit_hash: 'abc123def456',
+      created_at: '2024-01-10',
+      deadline: '2024-01-17'
+    }
+  ]);
+  const [completedOrders, setCompletedOrders] = useState<Order[]>([]);
+  const [disputedOrders, setDisputedOrders] = useState<Order[]>([]);
+
   // Mock data
   const availableServices: Service[] = [
     {
-      id: '1',
+      id: '0xf78cfb336946aa327ea141a4eb1534a4d050f85b0e23071fee6c430925cc3ced',
       name: 'React Web Development',
       price: 500,
       description: 'Full-stack React application development',
@@ -53,36 +78,6 @@ export const BuyerDashboard: React.FC = () => {
       delivery_time: 10,
       freelancer_address: '0xabcd...efgh',
       is_active: true
-    }
-  ];
-
-  const deliveredOrders: Order[] = [
-    {
-      id: '1',
-      service_id: '1',
-      buyer_address: '0xbuyer...1234',
-      freelancer_address: '0x1234...5678',
-      payment_amount: 500,
-      requirements_url: 'https://example.com/requirements',
-      status: 'delivered',
-      github_url: 'https://github.com/freelancer/project',
-      commit_hash: 'abc123def456',
-      created_at: '2024-01-10',
-      deadline: '2024-01-17'
-    }
-  ];
-
-  const inProgressOrders: Order[] = [
-    {
-      id: '2',
-      service_id: '2',
-      buyer_address: '0xbuyer...1234',
-      freelancer_address: '0x9876...5432',
-      payment_amount: 1000,
-      requirements_url: 'https://example.com/requirements2',
-      status: 'in_progress',
-      created_at: '2024-01-12',
-      deadline: '2024-01-20'
     }
   ];
 
@@ -158,38 +153,50 @@ export const BuyerDashboard: React.FC = () => {
 
   // CHANGES END
 
-  const handlePurchaseService = async () => {
-    // Check if all necessary inputs are provided
-    if (!selectedService || !paymentAmount || !requirementsUrl || !buyerCapId) {
-      alert('Please fill out all fields and ensure buyerCapId is set.');
+  const handlePurchaseService = async (service: Service) => {
+    if (!buyerCapId) {
+      // alert('Please enter your Buyer Capability ID to purchase a service.');
       return;
     }
 
     setLoading(true);
     try {
-      const price = parseFloat(paymentAmount);
-      // Call the specific function you created
-      // The callSmartContract function expects a function name (string),
-      // an address (string), and an array of parameters.
+      const requirementsUrl = 'https://example.com/my-requirements.pdf';
+
+      // Call the purchase service smart contract function.
       const response = await callSmartContract(
-        'purchase_service', // The name of the function to call
+        'purchase_service',
         '', // newAddress is not used for this function
-        [selectedService, price, requirementsUrl] // The parameters in an array
+        [service.id, service.price, requirementsUrl]
       );
-      
-      // Check the transaction status
-      if (response.success === false) {
-        alert('Transaction failed: ' + response.message);
+
+      if (response.success) {
+        // In a real application, you would parse the transaction response
+        // to get the newly created order_id. For now, we'll use a placeholder.
+        const newOrderId = '0xf78cfb336946aa327ea141a4eb1534a4d050f85b0e23071fee6c430925cc3ced';
+        
+        const newOrder: Order = {
+          id: newOrderId,
+          service_id: service.id,
+          buyer_address: 'Your Address Placeholder', // This would be the buyer's address
+          freelancer_address: service.freelancer_address,
+          payment_amount: service.price,
+          requirements_url: requirementsUrl,
+          status: 'in_progress',
+          created_at: new Date().toISOString().split('T')[0],
+          // You could add a deadline here if your contract provides it.
+        };
+
+        // Add the new order to the list of purchased orders
+        setPurchasedOrders([...purchasedOrders, newOrder]);
+
+        // alert(`Purchase successful! Your Order ID is: ${newOrderId}. This ID has been sent to the freelancer.`);
       } else {
-        alert('Purchase transaction submitted successfully! Digest: ' + response.digest);
-        // Clear the form fields on success
-        setSelectedService('');
-        setPaymentAmount('');
-        setRequirementsUrl('');
+        // alert('Transaction failed: ' + response.message);
       }
     } catch (error) {
       console.error('Error purchasing service:', error);
-      alert('Error purchasing service');
+      // alert('Error purchasing service');
     } finally {
       setLoading(false);
     }
@@ -198,10 +205,22 @@ export const BuyerDashboard: React.FC = () => {
   const handleAcceptDelivery = async (orderId: string) => {
     setLoading(true);
     try {
+      // Simulate smart contract call
       const result = await callSmartContract('accept_delivery', orderId);
-      alert(result.message);
+      if (result.success) {
+        // Find the accepted order from the delivered list
+        const acceptedOrder = deliveredOrders.find(order => order.id === orderId);
+        if (acceptedOrder) {
+          // Remove from deliveredOrders
+          const updatedDelivered = deliveredOrders.filter(order => order.id !== orderId);
+          setDeliveredOrders(updatedDelivered);
+          // Add to completedOrders and update status
+          setCompletedOrders([...completedOrders, { ...acceptedOrder, status: 'completed' }]);
+          console.log(`Order ${orderId} accepted. Payment released!`);
+        }
+      }
     } catch (error) {
-      alert('Error accepting delivery');
+      console.error('Error accepting delivery', error);
     } finally {
       setLoading(false);
     }
@@ -210,10 +229,22 @@ export const BuyerDashboard: React.FC = () => {
   const handleRejectDelivery = async (orderId: string) => {
     setLoading(true);
     try {
+      // Simulate smart contract call
       const result = await callSmartContract('reject_delivery', orderId);
-      alert(result.message);
+      if (result.success) {
+        // Find the rejected order from the delivered list
+        const rejectedOrder = deliveredOrders.find(order => order.id === orderId);
+        if (rejectedOrder) {
+          // Remove from deliveredOrders
+          const updatedDelivered = deliveredOrders.filter(order => order.id !== orderId);
+          setDeliveredOrders(updatedDelivered);
+          // Add to disputedOrders and update status
+          setDisputedOrders([...disputedOrders, { ...rejectedOrder, status: 'disputed' }]);
+          console.log(`Order ${orderId} rejected. Dispute initiated.`);
+        }
+      }
     } catch (error) {
-      alert('Error rejecting delivery');
+      console.error('Error rejecting delivery', error);
     } finally {
       setLoading(false);
     }

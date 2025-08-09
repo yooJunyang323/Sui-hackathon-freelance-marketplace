@@ -23,10 +23,16 @@ export const FreelancerDashboard: React.FC = () => {
   const [commitHash, setCommitHash] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Mock data
+  // === NEW STATE FOR PLACEHOLDER IDS ===
+  const [listedServiceId, setListedServiceId] = useState('');
+  const [pendingOrderId, setPendingOrderId] = useState('');
+  const [inProgressOrderId, setInProgressOrderId] = useState('');
+  
+  // Mock data with a placeholder service ID and order IDs
+  // In a real app, this data would be fetched from the blockchain
   const userServices: Service[] = [
     {
-      id: '1',
+      id: '0x174ce3e5ee7e13d0d4fbb11fa86478cf35072fce60ff813e0b2ab56132cc3472',
       name: 'React Web Development',
       price: 500,
       description: 'Full-stack React application development',
@@ -34,34 +40,28 @@ export const FreelancerDashboard: React.FC = () => {
       freelancer_address: '0x1234...5678',
       is_active: true
     },
-    {
-      id: '2',
-      name: 'Smart Contract Audit',
-      price: 1000,
-      description: 'Comprehensive smart contract security audit',
-      delivery_time: 14,
-      freelancer_address: '0x1234...5678',
-      is_active: true
-    }
   ];
 
-  const pendingOrders: Order[] = [
+  // Mock data for a freelancer's orders.
+  // In a real application, this data would be fetched from the blockchain
+  // filtering by the freelancer's address.
+  const [pendingOrders, setPendingOrders] = useState<Order[]>([
     {
-      id: '1',
-      service_id: '1',
-      buyer_address: '0xabcd...efgh',
-      freelancer_address: '0x1234...5678',
+      id: '0xf78cfb336946aa327ea141a4eb1534a4d050f85b0e23071fee6c430925cc3ced',
+      service_id: '0x174ce3e5ee7e13d0d4fbb11fa86478cf35072fce60ff813e0b2ab56132cc3472',
+      buyer_address: '0xbuyer...1234',
+      freelancer_address: '0xfreelancer...5678',
       payment_amount: 500,
-      requirements_url: 'https://example.com/requirements',
+      requirements_url: 'https://example.com/buyer-reqs',
       status: 'pending',
       created_at: '2024-01-15'
     }
-  ];
+  ]);
 
   const inProgressOrders: Order[] = [
     {
-      id: '2',
-      service_id: '2',
+      id: '0xijklm67890...',
+      service_id: '0x174ce3e5ee7e13d0d4fbb11fa86478cf35072fce60ff813e0b2ab56132cc3472',
       buyer_address: '0xijkl...mnop',
       freelancer_address: '0x1234...5678',
       payment_amount: 1000,
@@ -72,8 +72,10 @@ export const FreelancerDashboard: React.FC = () => {
     }
   ];
 
+  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [rejectedOrders, setRejectedOrders] = useState<Order[]>([]);
+
   const handleListService = async () => {
-    // Basic validation
     if (!freelancerCapId || !serviceName || !servicePrice || !serviceDescription || !deliverables || !deliveryTime) {
       alert('Please fill out all fields and provide your Freelancer Capability ID.');
       return;
@@ -84,14 +86,21 @@ export const FreelancerDashboard: React.FC = () => {
       const parsedPrice = parseFloat(servicePrice);
       const parsedDeliveryTime = parseInt(deliveryTime);
 
+      // In a real application, the response object from `callSmartContract`
+      // would contain the new service ID. For now, we'll use a placeholder.
       const response = await callSmartContract(
         'list_service',
-        '', // newAddress is not used for this function
+        '',
         [freelancerCapId, serviceName, serviceDescription, parsedPrice, deliverables, parsedDeliveryTime]
       );
 
       if (response.success) {
-        alert('Service listed successfully! Digest: ' + response.digest);
+        // Here you would get the new serviceId from the response.
+        // For now, we'll use a placeholder from your example.
+        const newServiceId = '0x174ce3e5ee7e13d0d4fbb11fa86478cf35072fce60ff813e0b2ab56132cc3472';
+        setListedServiceId(newServiceId);
+        
+        alert('Service listed successfully! The generated ID is: ' + newServiceId);
         // Clear the form on success
         setServiceName('');
         setServicePrice('');
@@ -133,10 +142,22 @@ export const FreelancerDashboard: React.FC = () => {
   const handleAcceptOrder = async (orderId: string) => {
     setLoading(true);
     try {
+      // Simulate a call to the smart contract
       const result = await callSmartContract('accept_order', orderId);
-      alert(result.message);
+      if (result.success) {
+        // Move the accepted order from pending to active
+        const acceptedOrder = pendingOrders.find(order => order.id === orderId);
+        if (acceptedOrder) {
+          const updatedPending = pendingOrders.filter(order => order.id !== orderId);
+          setPendingOrders(updatedPending);
+          setActiveOrders([...activeOrders, { ...acceptedOrder, status: 'in_progress' }]);
+          console.log(`Order ${orderId.slice(0, 8)}... accepted successfully!`);
+        }
+      } else {
+        console.error('Error accepting order:', result.message);
+      }
     } catch (error) {
-      alert('Error accepting order');
+      console.error('Error accepting order:', error);
     } finally {
       setLoading(false);
     }
@@ -145,10 +166,18 @@ export const FreelancerDashboard: React.FC = () => {
   const handleRejectOrder = async (orderId: string) => {
     setLoading(true);
     try {
+      // Simulate a call to the smart contract
       const result = await callSmartContract('reject_order', orderId);
-      alert(result.message);
+      if (result.success) {
+        // The order is simply removed from the pending list
+        const updatedPending = pendingOrders.filter(order => order.id !== orderId);
+        setPendingOrders(updatedPending);
+        console.log(`Order ${orderId.slice(0, 8)}... rejected and terminated.`);
+      } else {
+        console.error('Error rejecting order:', result.message);
+      }
     } catch (error) {
-      alert('Error rejecting order');
+      console.error('Error rejecting order:', error);
     } finally {
       setLoading(false);
     }

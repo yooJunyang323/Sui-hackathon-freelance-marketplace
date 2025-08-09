@@ -125,7 +125,7 @@ export const AdminDashboard: React.FC = () => {
   const handleResolveDispute = async (orderId: string) => {
     setLoading(true);
     try {
-      const result = await callSmartContract('resolve_dispute', [orderId]);
+      const result = await callSmartContract('resolve_dispute', orderId);
       alert(result.message);
     } catch (error) {
       alert('Error resolving dispute');
