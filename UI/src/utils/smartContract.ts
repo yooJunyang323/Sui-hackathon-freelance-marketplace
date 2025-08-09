@@ -1,38 +1,127 @@
-// smartContract.ts
-import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
-import { TransactionBlock } from '@mysten/sui.js/transactions';
+import {
+  SuiClient,
+  getFullnodeUrl,
+} from '@mysten/sui/client';
+import { Transaction } from '@mysten/sui/transactions';
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 
-// Initialize Sui client (use your preferred RPC endpoint)
-const client = new SuiClient({ url: getFullnodeUrl('mainnet') });
+// This function needs to be outside of the contract call or passed in
+// For a dApp, this keypair would be handled by a wallet SDK
+const keypair = Ed25519Keypair.generate();
+const PACKAGE_ID = "0x3bcb920bef49d3921c412d90053403d6335e54466322b6a0c6dfea8dd2c175e1";
+const MODULE_NAME = "marketplace";
 
-/**
- * Calls a Sui Move function on-chain.
- * @param packageId The on-chain package ID (string, e.g. "0x123...")
- * @param moduleName The Move module name (string)
- * @param functionName The Move function name (string)
- * @param args The arguments for the Move function (array)
- * @param signer The wallet signer (from your wallet adapter)
- * @returns The transaction response from Sui
- */
-export const callSuiMoveFunction = async (
-  packageId: string,
-  moduleName: string,
+// Initialize a provider to connect to a Sui network
+const rpcUrl = getFullnodeUrl('devnet');
+const client = new SuiClient({ url: rpcUrl });
+
+export const callSmartContract = async (
   functionName: string,
-  args: any[],
-  signer: any // e.g. from wallet adapter, like SuiWallet, Suiet, etc.
+  newAddress: string,
+  params: any[] = []
 ) => {
-  // Build the transaction block
-  const txb = new TransactionBlock();
-  txb.moveCall({
-    target: `${packageId}::${moduleName}::${functionName}`,
-    arguments: args.map(arg => txb.pure(arg)),
-  });
+  console.log(`Calling smart contract function: ${functionName}`, params);
 
-  // Sign and execute the transaction block
-  const result = await signer.signAndExecuteTransactionBlock({
-    transactionBlock: txb,
-    options: { showEffects: true, showEvents: true },
-  });
-
-  return result;
+  switch (functionName) {
+    case 'create_marketplace':
+      return callCreateMarketplace(params);
+    case 'add_freelancer':
+      return callAddFreelancer(newAddress);
+    case 'add_buyer':
+      return callAddBuyer(newAddress);
+    default:
+      return { success: false, message: 'Unknown function' };
+  }
 };
+
+const callCreateMarketplace = async (params: any[]) => {
+  const transaction = new Transaction();
+
+  // Replace with your actual package, module, and function names
+  const packageId = PACKAGE_ID;
+  const moduleName = MODULE_NAME;
+  const marketplaceFunctionName = 'create_marketplace';
+
+  // Build the moveCall command within the transaction
+  transaction.moveCall({
+    target: `${packageId}::${moduleName}::${marketplaceFunctionName}`,
+    arguments: [], // Add your arguments here if the function takes any
+    typeArguments: [], // Add generic type arguments if needed
+  });
+
+  try {
+    // Execute the transaction
+    const result = await client.signAndExecuteTransaction({
+      transaction,
+      signer: keypair,
+    });
+
+    console.log('Transaction result:', result);
+    return {
+      success: true,
+      message: 'Marketplace created successfully',
+      digest: result.digest, // The unique transaction ID
+    };
+  } catch (error) {
+    console.error('Transaction failed:', error);
+    return { success: false, message: 'Transaction failed', error: error };
+  }
+};
+
+// Function to call the 'add_freelancer' Sui Move function
+const callAddFreelancer = async (newFreelancerAddress: string) => {
+  const transaction = new Transaction();
+
+  const packageId = PACKAGE_ID;
+  const moduleName = MODULE_NAME;
+  const functionName = 'add_freelancer';
+
+    transaction.moveCall({
+    target: `${packageId}::${moduleName}::${functionName}`,
+    arguments: [
+      transaction.pure.address(newFreelancerAddress),
+    ],
+  });
+
+  try {
+  const result = await client.signAndExecuteTransaction({
+      transaction,
+      signer: keypair,
+    });
+  console.log('Transaction result:', result);
+    return { success: true, message: 'Freelancer added successfully', digest: result.digest };
+  } catch (error) {
+    console.error('Transaction failed:', error);
+    return { success: false, message: 'Failed to add freelancer', error: error };
+  }
+};
+
+// Function to call the 'add_buyer' Sui Move function
+const callAddBuyer = async (newBuyerAddress: string) => {
+  const transaction = new Transaction();
+
+  const packageId = PACKAGE_ID;
+  const moduleName = MODULE_NAME;
+  const functionName = 'add_buyer';
+
+  // Build the moveCall command
+  transaction.moveCall({
+    target: `${packageId}::${moduleName}::${functionName}`,
+    arguments: [
+      transaction.pure.address(newBuyerAddress),
+    ],
+  });
+
+  try {
+    const result = await client.signAndExecuteTransaction({
+      transaction,
+      signer: keypair,
+    });
+    console.log('Transaction result:', result);
+    return { success: true, message: 'Buyer added successfully', digest: result.digest };
+  } catch (error) {
+    console.error('Transaction failed:', error);
+    return { success: false, message: 'Failed to add buyer', error: error };
+  }
+};
+
