@@ -3,7 +3,7 @@ module sui_hire::marketplace;
 // Framework
 use sui::coin::{Self, Coin};
 use sui::dynamic_object_field as dof;
-use sui::bag::{Self, Bag};
+// use sui::bag::{Self, Bag};
 use sui::table::{Self, Table};
 use sui::clock::{Self, Clock};
 
