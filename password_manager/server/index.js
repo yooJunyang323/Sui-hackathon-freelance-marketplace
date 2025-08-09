@@ -1,3 +1,4 @@
+// run node index.js
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -59,4 +60,9 @@ app.get("/repo", (req, res) => {
   const key = `${userAddress}_${orderId}`;
   const encryptedData = encryptedRepos[key] || null;
   return res.json({ encryptedData });
+});
+
+
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });
