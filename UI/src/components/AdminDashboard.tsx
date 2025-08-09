@@ -49,7 +49,7 @@ export const AdminDashboard: React.FC = () => {
     if (!coinType) return;
     setLoading(true);
     try {
-      const result = await callSmartContract('create_marketplace', [coinType]);
+      const result = await callSmartContract('create_marketplace', coinType);
       alert(result.message);
       setCoinType('');
     } catch (error) {
@@ -98,18 +98,29 @@ export const AdminDashboard: React.FC = () => {
 };
 
   const handleAddAdmin = async () => {
-    if (!adminAddress) return;
-    setLoading(true);
-    try {
-      const result = await callSmartContract('add_admin', [adminAddress]);
+  if (!adminAddress) {
+    alert('Please enter an admin address.');
+    return;
+  }
+  
+  setLoading(true);
+  try {
+    const result = await callSmartContract('add_admin', adminAddress);
+
+    if (result.success) {
       alert(result.message);
+      // Clear the input field after a successful transaction
       setAdminAddress('');
-    } catch (error) {
-      alert('Error adding admin');
-    } finally {
-      setLoading(false);
+    } else {
+      alert(`Error: ${result.message}`);
     }
-  };
+  } catch (error) {
+    console.error('Failed to add admin:', error);
+    alert('An unexpected error occurred while adding the admin.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleResolveDispute = async (orderId: string) => {
     setLoading(true);

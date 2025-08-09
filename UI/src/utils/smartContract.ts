@@ -29,11 +29,13 @@ export const callSmartContract = async (
       return callAddFreelancer(newAddress);
     case 'add_buyer':
       return callAddBuyer(newAddress);
+    case 'add_admin':
+      return callAddAdmin(newAddress);
     default:
       return { success: false, message: 'Unknown function' };
   }
 };
-
+// ============================= ADMIN FUNCTION =============================
 const callCreateMarketplace = async (params: any[]) => {
   const transaction = new Transaction();
 
@@ -125,3 +127,29 @@ const callAddBuyer = async (newBuyerAddress: string) => {
   }
 };
 
+const callAddAdmin = async (adminAddress: string) => {
+  const transaction = new Transaction();
+
+  const packageId = PACKAGE_ID;
+  const moduleName = MODULE_NAME;
+  const functionName = 'add_admin';
+
+  transaction.moveCall({
+    target: `${packageId}::${moduleName}::${functionName}`,
+    arguments: [
+      transaction.pure.address(adminAddress),
+    ],
+  });
+
+  try {
+    const result = await client.signAndExecuteTransaction({
+      transaction,
+      signer: keypair,
+    });
+    console.log('Transaction result:', result);
+    return { success: true, message: 'Admin added successfully', digest: result.digest };
+  } catch (error) {
+    console.error('Transaction failed:', error);
+    return { success: false, message: 'Failed to add admin', error: error };
+  }
+};
