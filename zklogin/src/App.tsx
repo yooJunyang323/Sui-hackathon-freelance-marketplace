@@ -7,6 +7,7 @@ import { generateProof } from './lib/auth/createZkProof';
 import { ConnectButton } from "@suiet/wallet-kit";
 import { useWallet } from "@suiet/wallet-kit";
 import { SuiClient } from '@mysten/sui/client';
+import { requestSuiFromFaucetV0, getFaucetHost } from '@mysten/sui/faucet';
 
 const client = new SuiClient({ url: 'https://fullnode.devnet.sui.io'});
 
@@ -15,6 +16,7 @@ const fetchCaps = (address: string) => {
     const check = async() => {
       const freelancerCapType = '0x3fdf3060c7681e4661320c9cbd1a533c58ace8e542f7bed900b74a7e3bc50d5d::marketplace::FreelancerCap';
       const buyerCapType = '0x3fdf3060c7681e4661320c9cbd1a533c58ace8e542f7bed900b74a7e3bc50d5d::marketplace::BuyerCap';
+      
 
       try {
         const freelancerCaps = await client.getOwnedObjects({
@@ -57,6 +59,36 @@ function App() {
   const [extensionAddress, setExtensionAddress] = useState<string | null>(null);
   const [googleAddress, setGoogleAddress ] = useState<string | null>(null);
   const [roleChecked, setRoleChecked] = useState<boolean>(false);
+
+  async function requestFaucetCoins(address: string) {
+  try {
+    console.log("Requesting from faucet for:", address);
+    //const host = getFaucetHost('devnet');
+    const response = await fetch('https://faucet.devnet.sui.io/v2/gas',{
+    //const response = await fetch(`${host}/gas`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        FixedAmountRequest: {
+          recipient: address.toLowerCase(),
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Faucet request failed: ${response.status} ${await response.text()}`);
+    }
+
+    const result = await response.json();
+    console.log('Faucet response:', result);
+    return result;
+  } catch (error) {
+    console.error("Faucet request error:", error);
+    throw error;
+  }
+}
 
   
   useEffect(() => {
@@ -103,6 +135,9 @@ function App() {
         setGoogleAddress(userSuiAddress);
         console.log("Sui Address (zkLogin):", userSuiAddress);
         console.log("ZkProof received:", proofPoints);
+        console.log("Calling out the requestFaucetCoins");
+        await requestFaucetCoins(userSuiAddress);
+
       } catch (error) {
         console.error("Failed to generate proof or get Sui address:", error);
       }
@@ -133,7 +168,12 @@ function App() {
         </div>
       </div>
     );
-  }
+
+    
+
+}
+
+  
 
   return (
     <>
