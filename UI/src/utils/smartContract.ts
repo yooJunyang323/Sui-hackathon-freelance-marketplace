@@ -303,6 +303,18 @@ export const callSmartContract = async (
         price,
         requirementsUrl
       );
+    case 'list_service':
+      const [freelancerCapId, title, description, price_list, deliverables, expectedTime] = params;
+      return await callListService(
+        client,
+        keypair,
+        freelancerCapId,
+        title,
+        description,
+        price_list,
+        deliverables,
+        expectedTime,
+      );
     default:
       return { success: false, message: 'Unknown function' };
   }
