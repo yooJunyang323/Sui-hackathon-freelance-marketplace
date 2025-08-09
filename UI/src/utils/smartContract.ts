@@ -5,7 +5,7 @@ import {
   Connection,
   TransactionBlock,
 } from "@mysten/sui";
-import { Ed25519Keypair } from "@mysten/sui.js/keypairs/ed25519";
+import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 
 // Load credentials from environment variables for security
 const SUI_PRIVATE_KEY = process.env.SUI_PRIVATE_KEY;
